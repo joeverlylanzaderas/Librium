@@ -1,4 +1,4 @@
-# users/serializers.py
+# user/serializers.py
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from djoser.serializers import UserCreateSerializer as DjoserUserCreateSerializer
@@ -25,16 +25,16 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'phone_number',
             'address',
             'bio',
-            'birthday',     
-            'sex',         
+            'birthday',
+            'sex',
             'sex_display',
-            'age',          
+            'age',
         ]
         read_only_fields = ['age', 'sex_display']
 
 
 # ─────────────────────────────────────────────
-#  USER
+#  USER  (full read serializer)
 # ─────────────────────────────────────────────
 
 class UserSerializer(DjoserUserSerializer):
@@ -50,7 +50,7 @@ class UserSerializer(DjoserUserSerializer):
             'role',
             'is_active',
             'date_joined',
-            'profile',  
+            'profile',
         ]
         read_only_fields = ['id', 'date_joined', 'is_active']
 
@@ -62,9 +62,10 @@ class UserSerializer(DjoserUserSerializer):
 class UserCreateSerializer(DjoserUserCreateSerializer):
     password  = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=True, label='Confirm password')
-    phone_number = serializers.CharField(max_length=20, required=False, allow_blank=True) 
-    birthday = serializers.DateField(required=False, allow_null=True)
-    sex      = serializers.ChoiceField(
+
+    phone_number = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    birthday     = serializers.DateField(required=False, allow_null=True)
+    sex          = serializers.ChoiceField(
         choices=UserProfile.SEX_CHOICES,
         required=False,
         allow_null=True,
@@ -96,14 +97,17 @@ class UserCreateSerializer(DjoserUserCreateSerializer):
     def create(self, validated_data):
         validated_data.pop('password2')
         phone_number = validated_data.pop('phone_number', None)
-        birthday = validated_data.pop('birthday', None)
-        sex      = validated_data.pop('sex', None)
-        password = validated_data.pop('password')
+        birthday     = validated_data.pop('birthday', None)
+        sex          = validated_data.pop('sex', None)
+        password     = validated_data.pop('password')
+
+        # Create user — is_active=False until email verified
         user = User(**validated_data)
         user.set_password(password)
-        user.is_active = False     
-        user.save()
+        user.is_active = False
+        user.save()  # post_save signal creates UserProfile here
 
+        # Write demographic fields to profile
         if birthday is not None or sex is not None or phone_number is not None:
             profile = user.profile
             if birthday is not None:
@@ -113,6 +117,30 @@ class UserCreateSerializer(DjoserUserCreateSerializer):
             if phone_number is not None:
                 profile.phone_number = phone_number
             profile.save()
+
+        # ── Send activation email in background thread ─────────────
+        # Djoser's SEND_ACTIVATION_EMAIL=True would block the Gunicorn
+        # worker waiting for Gmail SMTP (~30s+) causing a timeout 500.
+        # Threading lets the response return immediately while email
+        # sends in the background. The instructor flow still works:
+        #   1. User registers → is_active=False  ✓
+        #   2. Login denied (inactive)            ✓
+        #   3. Email arrives, user clicks link    ✓
+        #   4. is_active=True, login succeeds     ✓
+        import threading
+        from djoser.email import ActivationEmail
+
+        request = self.context.get('request')
+
+        def send_activation_email():
+            try:
+                ActivationEmail(request, {'user': user}).send([user.email])
+                print(f'[Librium] Activation email sent to {user.email}')
+            except Exception as e:
+                print(f'[Librium] Activation email FAILED for {user.email}: {e}')
+
+        thread = threading.Thread(target=send_activation_email, daemon=True)
+        thread.start()
 
         return user
 
@@ -142,10 +170,9 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
             'phone_number',
             'address',
             'bio',
-            'birthday',     
-            'sex',          
+            'birthday',
+            'sex',
         ]
-        read_only_fields = []
 
 
 # ─────────────────────────────────────────────
@@ -157,7 +184,7 @@ class ChangePasswordSerializer(serializers.Serializer):
     new_password     = serializers.CharField(
         required=True,
         write_only=True,
-        validators=[validate_password]  
+        validators=[validate_password]
     )
     confirm_password = serializers.CharField(required=True, write_only=True)
 
