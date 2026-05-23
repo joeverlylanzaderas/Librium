@@ -1,0 +1,67 @@
+# ─────────────────────────────────────────────
+# PYTHON / DJANGO
+# ─────────────────────────────────────────────
+*.pyc
+__pycache__/
+db.sqlite3
+*.sqlite3
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# Django stuff
+media/
+staticfiles/
+
+# Environment variables
+.env
+.env.*
+
+# Logs
+*.log
+
+# VSCode
+.vscode/
+
+# macOS
+.DS_Store
+
+# ─────────────────────────────────────────────
+# NODE / REACT / EXPO
+# ─────────────────────────────────────────────
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+
+# Metro
+.metro-health-check*
+
+# npm/yarn
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Native
+android/
+ios/
+
+# TypeScript
+*.tsbuildinfo
+
+# ─────────────────────────────────────────────
+# BUILD FILES
+# ─────────────────────────────────────────────
+build/
+coverage/
+
+# ─────────────────────────────────────────────
+# IDE
+# ─────────────────────────────────────────────
+.idea/
+*.swp
+*.swo
