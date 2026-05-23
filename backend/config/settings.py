@@ -149,7 +149,7 @@ EMAIL_USE_TLS       = True
 EMAIL_TIMEOUT       = 20
 EMAIL_HOST_USER     = os.environ.get('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
-DEFAULT_FROM_EMAIL  = EMAIL_HOST_USER or 'noreply@librium.app'
+DEFAULT_FROM_EMAIL  = 'lanzaderas.joeverlypearl04@gmail.com'
 
 DOMAIN    = os.environ.get('DOMAIN', 'librium.onrender.com')
 SITE_NAME = 'Librium Library'
