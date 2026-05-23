@@ -11,11 +11,21 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'fallback-dev-secret-key-change-in-pro
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'https://librium.onrender.com']
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = True  # development only
 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8081",
+    "http://127.0.0.1:8081",
+    "https://librium.onrender.com",
+
+    "http://localhost:19006",   # Expo web alternate port
+    "http://localhost:19000",   # Expo Go
+]
 
 # ─────────────────────────────────────────────
 # APPS
