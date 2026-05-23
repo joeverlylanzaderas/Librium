@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "Librium",
+    "slug": "librium",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "backgroundColor": "#0f1117",
+    "userInterfaceStyle": "dark",
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0f1117"
+      },
+      "package": "com.jvrly.css.librium"
+    },
+    "ios": {
+      "supportsTablet": false
+    },
+    "plugins": [
+      "expo-font",
+      "expo-splash-screen"
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+/* src/global.css */
+@theme {
+  --font-sans: "Literata-Regular", system-ui, sans-serif;
+  --font-serif: "Literata-SemiBold", Georgia, serif;
+  --font-rounded: "Literata-Medium", sans-serif;
+}
+
+:root {
+  --font-display: 'Literata-Regular', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: 'Literata-SemiBold', Georgia, serif;
+  --font-rounded: 'Literata-Medium', sans-serif;
+  --font-mono: ui-monospace, monospace;
+}
