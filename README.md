@@ -12,7 +12,7 @@ It supports book management, borrow requests, reservations, loans, fines, semest
 - Role-based accounts:
   - Admin
   - Librarian
-  - Member
+  - Borrower
 - User registration & activation
 
 ---
