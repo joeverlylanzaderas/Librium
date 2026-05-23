@@ -1,0 +1,895 @@
+/* ============================================================
+   LIBRIUM — Warm Library Theme
+   Covers: dashboard, list views, forms, buttons, sidebar,
+           navbar, tables, filters, breadcrumbs, modals,
+           delete pages, history pages, popups
+   ============================================================ */
+
+   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Lato:wght@300;400;600&display=swap');
+
+   :root {
+     --wood-dark:    #2C1A0E;
+     --wood-mid:     #5C3317;
+     --wood-light:   #8B5E3C;
+     --wood-warm:    #A0522D;
+     --parchment:    #F5EDD6;
+     --parchment-dk: #EAD9B5;
+     --cream:        #FBF6EC;
+     --ink:          #1C1208;
+     --ink-soft:     #3D2B1F;
+     --green-lib:    #2D5016;
+     --green-soft:   #4A7C28;
+     --burgundy:     #6B1E2E;
+     --gold:         #B8860B;
+     --gold-light:   #DAA520;
+     --border-warm:  #C8A882;
+     --shadow:       rgba(44, 26, 14, 0.15);
+   }
+   
+   /* ── Base ──────────────────────────────────────────────────── */
+   body, .wrapper {
+     background-color: var(--cream) !important;
+     font-family: 'Lato', sans-serif !important;
+     color: var(--ink-soft) !important;
+   }
+   
+   h1, h2, h3, h4, h5,
+   .content-header h1,
+   .page-header h1 {
+     font-family: 'Playfair Display', serif !important;
+     color: var(--wood-dark) !important;
+   }
+   
+   a { color: var(--wood-warm) !important; }
+   a:hover { color: var(--wood-dark) !important; }
+   
+   /* ── Navbar ────────────────────────────────────────────────── */
+   .main-header.navbar,
+   .navbar.navbar-dark {
+     background: linear-gradient(135deg, var(--wood-dark) 0%, var(--wood-mid) 100%) !important;
+     border-bottom: 3px solid var(--gold) !important;
+     box-shadow: 0 2px 8px var(--shadow) !important;
+   }
+   
+   .navbar-brand, .brand-text {
+     font-family: 'Playfair Display', serif !important;
+     font-size: 1.2rem !important;
+     color: var(--parchment) !important;
+     letter-spacing: 0.5px !important;
+   }
+   
+   .nav-link, .navbar-nav .nav-link {
+     color: var(--parchment-dk) !important;
+   }
+   .nav-link:hover { color: var(--gold-light) !important; }
+   
+   /* Navbar search */
+   .navbar-search .form-control {
+     background: rgba(255,255,255,0.1) !important;
+     border: 1px solid rgba(255,255,255,0.2) !important;
+     color: var(--parchment) !important;
+   }
+   .navbar-search .form-control::placeholder { color: rgba(245,237,214,0.5) !important; }
+   .navbar-search .btn { color: var(--parchment-dk) !important; }
+   
+   /* ── Sidebar ───────────────────────────────────────────────── */
+   .main-sidebar, .sidebar {
+     background: linear-gradient(180deg, var(--wood-dark) 0%, var(--wood-mid) 60%, var(--wood-light) 100%) !important;
+     border-right: 2px solid var(--gold) !important;
+   }
+   
+   .sidebar-dark-warning .nav-sidebar > .nav-item > .nav-link.active,
+   .nav-sidebar .nav-link.active,
+   .nav-sidebar .nav-item.menu-open > .nav-link {
+     background-color: var(--gold) !important;
+     color: var(--wood-dark) !important;
+     font-weight: 600 !important;
+   }
+   
+   .nav-sidebar .nav-link {
+     color: var(--parchment-dk) !important;
+     font-family: 'Lato', sans-serif !important;
+     border-radius: 6px !important;
+     margin: 2px 8px !important;
+     transition: all 0.2s !important;
+   }
+   
+   .nav-sidebar .nav-link:hover,
+   .nav-sidebar .nav-link:focus {
+     background-color: rgba(184, 134, 11, 0.2) !important;
+     color: var(--gold-light) !important;
+   }
+   
+   .nav-sidebar .nav-header {
+     color: var(--gold) !important;
+     font-size: 0.68rem !important;
+     letter-spacing: 1.5px !important;
+     text-transform: uppercase !important;
+     font-weight: 700 !important;
+   }
+   
+   /* Sidebar brand area */
+   .brand-link {
+     border-bottom: 1px solid rgba(184,134,11,0.3) !important;
+   }
+   
+   /* ── Content area ──────────────────────────────────────────── */
+   .content-wrapper {
+     background-color: var(--cream) !important;
+   }
+   
+   .content-header {
+     background: var(--parchment) !important;
+     border-bottom: 1px solid var(--border-warm) !important;
+     padding: 14px 24px !important;
+   }
+   
+   /* Page title */
+   .content-header .breadcrumb-item.active,
+   .content-header h1 {
+     font-family: 'Playfair Display', serif !important;
+     color: var(--wood-dark) !important;
+   }
+   
+   /* ── Breadcrumbs ───────────────────────────────────────────── */
+   .breadcrumb {
+     background: transparent !important;
+     font-size: 0.82rem !important;
+   }
+   .breadcrumb-item a { color: var(--wood-warm) !important; }
+   .breadcrumb-item.active { color: var(--ink-soft) !important; }
+   .breadcrumb-item + .breadcrumb-item::before { color: var(--border-warm) !important; }
+   
+   /* ── Cards ─────────────────────────────────────────────────── */
+   .card {
+     border: 1px solid var(--border-warm) !important;
+     border-radius: 10px !important;
+     box-shadow: 0 2px 8px var(--shadow) !important;
+     background-color: var(--parchment) !important;
+   }
+   
+   .card-header {
+     background: linear-gradient(135deg, var(--wood-mid), var(--wood-warm)) !important;
+     color: var(--parchment) !important;
+     font-family: 'Playfair Display', serif !important;
+     border-bottom: 2px solid var(--gold) !important;
+     border-radius: 9px 9px 0 0 !important;
+     padding: 12px 18px !important;
+   }
+   
+   .card-title, .card-header h3, .card-header h5 {
+     color: var(--parchment) !important;
+     font-family: 'Playfair Display', serif !important;
+     margin: 0 !important;
+   }
+   
+   .card-body { background: var(--parchment) !important; }
+   
+   /* ── Object tools (Add button top-right on list pages) ──────── */
+   #content-main .object-tools a,
+   .object-tools a {
+     background: var(--wood-mid) !important;
+     border: none !important;
+     color: var(--parchment) !important;
+     border-radius: 6px !important;
+     font-family: 'Lato', sans-serif !important;
+     font-weight: 600 !important;
+     font-size: 0.82rem !important;
+     padding: 7px 14px !important;
+     transition: background 0.2s !important;
+     text-decoration: none !important;
+   }
+   .object-tools a:hover {
+     background: var(--wood-dark) !important;
+     color: var(--gold-light) !important;
+   }
+   
+   /* ── Buttons ───────────────────────────────────────────────── */
+   .btn, button {
+     border-radius: 6px !important;
+     font-family: 'Lato', sans-serif !important;
+     font-weight: 600 !important;
+     transition: all 0.2s !important;
+   }
+   
+   .btn-primary, a.btn-primary {
+     background-color: var(--wood-mid) !important;
+     border-color: var(--wood-dark) !important;
+     color: var(--parchment) !important;
+   }
+   .btn-primary:hover {
+     background-color: var(--wood-dark) !important;
+     border-color: var(--gold) !important;
+     color: var(--parchment) !important;
+   }
+   
+   .btn-success, a.btn-success {
+     background-color: var(--green-lib) !important;
+     border-color: var(--green-soft) !important;
+     color: #fff !important;
+   }
+   .btn-success:hover { background-color: #1e3a0f !important; color: #fff !important; }
+   
+   .btn-danger, a.btn-danger {
+     background-color: var(--burgundy) !important;
+     border-color: #4a0f1a !important;
+     color: #fff !important;
+   }
+   .btn-danger:hover { background-color: #4a0f1a !important; color: #fff !important; }
+   
+   .btn-warning, a.btn-warning {
+     background-color: var(--gold) !important;
+     border-color: var(--gold-light) !important;
+     color: var(--ink) !important;
+   }
+   
+   .btn-secondary, a.btn-secondary {
+     background-color: var(--wood-light) !important;
+     border-color: var(--wood-mid) !important;
+     color: var(--parchment) !important;
+   }
+   
+   .btn-info, a.btn-info {
+     background-color: #4a6fa5 !important;
+     border-color: #2e4f85 !important;
+     color: #fff !important;
+   }
+   
+   /* Save/submit buttons on forms */
+   input[type="submit"],
+   .submit-row input,
+   .submit-row button {
+     background: var(--wood-mid) !important;
+     border: 1px solid var(--wood-dark) !important;
+     color: var(--parchment) !important;
+     border-radius: 6px !important;
+     font-weight: 600 !important;
+     font-family: 'Lato', sans-serif !important;
+     padding: 8px 18px !important;
+     transition: background 0.2s !important;
+     cursor: pointer !important;
+   }
+   input[type="submit"]:hover,
+   .submit-row input:hover {
+     background: var(--wood-dark) !important;
+     color: var(--gold-light) !important;
+   }
+   
+   /* Delete button on submit row */
+   .submit-row a.deletelink,
+   .submit-row p.deletelink a {
+     background: var(--burgundy) !important;
+     color: #fff !important;
+     border-radius: 6px !important;
+     padding: 8px 18px !important;
+     font-weight: 600 !important;
+     font-size: 0.85rem !important;
+     text-decoration: none !important;
+     transition: background 0.2s !important;
+   }
+   .submit-row a.deletelink:hover { background: #4a0f1a !important; color: #fff !important; }
+   
+   .submit-row {
+     background: var(--parchment-dk) !important;
+     border-top: 1px solid var(--border-warm) !important;
+     border-radius: 0 0 8px 8px !important;
+     padding: 12px 16px !important;
+     gap: 8px !important;
+     display: flex !important;
+     flex-wrap: wrap !important;
+     align-items: center !important;
+   }
+   
+   /* ── List/change list tables ────────────────────────────────── */
+   #changelist-form .results,
+   #result_list {
+     border: 1px solid var(--border-warm) !important;
+     border-radius: 8px !important;
+     overflow: hidden !important;
+   }
+   
+   #result_list thead th,
+   #result_list thead th a,
+   #result_list thead th a:link,
+   #result_list thead th a:visited {
+     background: linear-gradient(135deg, var(--wood-mid), var(--wood-warm)) !important;
+     color: var(--parchment) !important;
+     font-family: 'Playfair Display', serif !important;
+     font-weight: 600 !important;
+     border-color: rgba(255,255,255,0.1) !important;
+     padding: 10px 14px !important;
+   }
+   
+   #result_list thead th a:hover { color: var(--gold-light) !important; }
+   
+   /* Column sort arrows */
+   #result_list thead th.sorted a::after,
+   table thead th.sorted .text a::after {
+     color: var(--gold-light) !important;
+   }
+   
+   #result_list tbody tr {
+     background: var(--parchment) !important;
+     transition: background 0.15s !important;
+   }
+   #result_list tbody tr:nth-child(even) {
+     background: var(--parchment-dk) !important;
+   }
+   #result_list tbody tr:hover td {
+     background: rgba(184, 134, 11, 0.1) !important;
+   }
+   
+   #result_list td, #result_list th {
+     border-color: var(--border-warm) !important;
+     color: var(--ink-soft) !important;
+     padding: 9px 14px !important;
+     vertical-align: middle !important;
+   }
+   
+   #result_list td a {
+     color: var(--wood-warm) !important;
+     font-weight: 600 !important;
+     text-decoration: none !important;
+   }
+   #result_list td a:hover { color: var(--wood-dark) !important; }
+   
+   /* Checkbox column */
+   #result_list tbody td.action-checkbox { background: inherit !important; }
+   
+   /* Action bar above table */
+   .actions {
+     background: var(--parchment-dk) !important;
+     border: 1px solid var(--border-warm) !important;
+     border-radius: 6px !important;
+     padding: 8px 12px !important;
+     margin-bottom: 10px !important;
+   }
+   
+   .actions select {
+     border: 1px solid var(--border-warm) !important;
+     background: var(--parchment) !important;
+     color: var(--ink-soft) !important;
+     border-radius: 5px !important;
+   }
+   
+   /* Select all / clear selection row */
+   #changelist table tfoot tr td {
+     background: var(--parchment-dk) !important;
+     padding: 8px 14px !important;
+     font-size: 0.82rem !important;
+     color: var(--ink-soft) !important;
+     border-top: 1px solid var(--border-warm) !important;
+   }
+   
+   /* Result count / info */
+   .paginator, #changelist .paginator {
+     background: var(--parchment-dk) !important;
+     border-top: 1px solid var(--border-warm) !important;
+     padding: 10px 14px !important;
+     font-size: 0.83rem !important;
+     color: var(--ink-soft) !important;
+     border-radius: 0 0 8px 8px !important;
+   }
+   
+   /* ── Search bar ──────────────────────────────────────────────── */
+   #changelist-search,
+   #toolbar {
+     background: var(--parchment-dk) !important;
+     border: 1px solid var(--border-warm) !important;
+     border-radius: 8px !important;
+     padding: 10px 14px !important;
+     margin-bottom: 14px !important;
+   }
+   
+   #changelist-search input[type="text"],
+   #toolbar input[type="text"],
+   #searchbar {
+     background: var(--parchment) !important;
+     border: 1px solid var(--border-warm) !important;
+     color: var(--ink-soft) !important;
+     border-radius: 6px 0 0 6px !important;
+     padding: 7px 12px !important;
+     font-family: 'Lato', sans-serif !important;
+   }
+   
+   #changelist-search input[type="submit"],
+   #toolbar input[type="submit"] {
+     background: var(--wood-mid) !important;
+     color: var(--parchment) !important;
+     border: 1px solid var(--wood-dark) !important;
+     border-radius: 0 6px 6px 0 !important;
+     padding: 7px 14px !important;
+     font-weight: 600 !important;
+   }
+   #changelist-search input[type="submit"]:hover { background: var(--wood-dark) !important; }
+   
+   /* ── Filters sidebar (right side on list pages) ─────────────── */
+   #changelist-filter {
+     background: var(--parchment) !important;
+     border-left: 2px solid var(--border-warm) !important;
+     border-radius: 8px !important;
+     overflow: hidden !important;
+   }
+   
+   #changelist-filter h2 {
+     background: linear-gradient(135deg, var(--wood-mid), var(--wood-warm)) !important;
+     color: var(--parchment) !important;
+     font-family: 'Playfair Display', serif !important;
+     font-size: 0.85rem !important;
+     padding: 10px 14px !important;
+     margin: 0 !important;
+     letter-spacing: 0.5px !important;
+   }
+   
+   #changelist-filter h3 {
+     color: var(--wood-dark) !important;
+     font-family: 'Playfair Display', serif !important;
+     font-size: 0.82rem !important;
+     border-bottom: 1px solid var(--border-warm) !important;
+     padding: 8px 14px 6px !important;
+     margin: 0 !important;
+     background: var(--parchment-dk) !important;
+   }
+   
+   #changelist-filter ul {
+     padding: 6px 14px 10px !important;
+     list-style: none !important;
+     margin: 0 !important;
+   }
+   #changelist-filter li { padding: 3px 0 !important; }
+   
+   #changelist-filter a {
+     color: var(--wood-warm) !important;
+     font-size: 0.83rem !important;
+     text-decoration: none !important;
+   }
+   #changelist-filter a:hover { color: var(--wood-dark) !important; text-decoration: underline !important; }
+   #changelist-filter li.selected a {
+     color: var(--wood-dark) !important;
+     font-weight: 700 !important;
+   }
+   
+   /* Date hierarchy */
+   .xfull { background: var(--parchment-dk) !important; }
+   
+   /* ── Forms (add/change pages) ───────────────────────────────── */
+   .change-form .form-row,
+   .form-row {
+     border-bottom: 1px solid var(--parchment-dk) !important;
+     padding: 10px 0 !important;
+   }
+   
+   .form-control,
+   input[type="text"],
+   input[type="email"],
+   input[type="number"],
+   input[type="url"],
+   input[type="password"],
+   input[type="tel"],
+   input[type="date"],
+   input[type="time"],
+   input[type="datetime-local"],
+   select,
+   textarea {
+     background-color: var(--parchment) !important;
+     border: 1px solid var(--border-warm) !important;
+     color: var(--ink-soft) !important;
+     border-radius: 6px !important;
+     font-family: 'Lato', sans-serif !important;
+     padding: 7px 10px !important;
+     transition: border-color 0.2s, box-shadow 0.2s !important;
+   }
+   
+   .form-control:focus,
+   input[type="text"]:focus,
+   input[type="email"]:focus,
+   input[type="number"]:focus,
+   input[type="date"]:focus,
+   select:focus,
+   textarea:focus {
+     border-color: var(--gold) !important;
+     box-shadow: 0 0 0 2px rgba(184, 134, 11, 0.2) !important;
+     outline: none !important;
+     background-color: var(--cream) !important;
+   }
+   
+   /* Checkbox + radio */
+   input[type="checkbox"],
+   input[type="radio"] {
+     accent-color: var(--wood-warm) !important;
+     width: 15px !important;
+     height: 15px !important;
+   }
+   
+   label, .form-label {
+     color: var(--wood-dark) !important;
+     font-weight: 600 !important;
+     font-size: 0.85rem !important;
+   }
+   
+   .help, p.help {
+     color: #8a7060 !important;
+     font-size: 0.78rem !important;
+     margin-top: 3px !important;
+   }
+   
+   /* Required star */
+   .required label::after,
+   label.required::after {
+     color: var(--burgundy) !important;
+   }
+   
+   /* Fieldset headers on change forms */
+   fieldset {
+     border: 1px solid var(--border-warm) !important;
+     border-radius: 8px !important;
+     margin-bottom: 16px !important;
+     background: var(--parchment) !important;
+     overflow: hidden !important;
+   }
+   
+   fieldset h2,
+   fieldset.module h2 {
+     background: linear-gradient(135deg, var(--wood-mid), var(--wood-warm)) !important;
+     color: var(--parchment) !important;
+     font-family: 'Playfair Display', serif !important;
+     font-size: 0.9rem !important;
+     padding: 9px 14px !important;
+     border-radius: 0 !important;
+     margin: 0 0 8px 0 !important;
+     letter-spacing: 0.3px !important;
+   }
+   
+   /* Collapse toggle on fieldsets */
+   fieldset.collapsed h2 {
+     border-radius: 6px !important;
+     margin-bottom: 0 !important;
+   }
+   fieldset h2 .collapse-toggle {
+     color: var(--parchment-dk) !important;
+     font-size: 0.75rem !important;
+   }
+   
+   /* Inline formsets */
+   .inline-group {
+     border: 1px solid var(--border-warm) !important;
+     border-radius: 8px !important;
+     margin-bottom: 16px !important;
+     overflow: hidden !important;
+   }
+   
+   .inline-group h2 {
+     background: linear-gradient(135deg, var(--wood-light), var(--wood-warm)) !important;
+     color: var(--parchment) !important;
+     font-family: 'Playfair Display', serif !important;
+     padding: 9px 14px !important;
+     border-radius: 0 !important;
+     margin: 0 !important;
+     font-size: 0.9rem !important;
+   }
+   
+   .inline-related {
+     background: var(--parchment) !important;
+     border-top: 1px solid var(--parchment-dk) !important;
+   }
+   
+   .inline-related h3 {
+     background: var(--parchment-dk) !important;
+     border-bottom: 1px solid var(--border-warm) !important;
+     padding: 8px 14px !important;
+     font-family: 'Lato', sans-serif !important;
+     font-size: 0.82rem !important;
+     color: var(--ink-soft) !important;
+     margin: 0 !important;
+   }
+   
+   .add-row a, .inline-deletelink {
+     font-size: 0.82rem !important;
+     font-weight: 600 !important;
+   }
+   .add-row a { color: var(--green-lib) !important; }
+   .inline-deletelink { color: var(--burgundy) !important; }
+   
+   /* FK raw id fields */
+   .related-widget-wrapper {
+     display: flex !important;
+     align-items: center !important;
+     gap: 6px !important;
+   }
+   .related-widget-wrapper-link {
+     color: var(--wood-warm) !important;
+     font-size: 0.82rem !important;
+   }
+   
+   /* ── Tabs (horizontal_tabs format on change forms) ───────────── */
+   .nav-tabs {
+     border-bottom: 2px solid var(--border-warm) !important;
+     background: var(--parchment-dk) !important;
+     border-radius: 8px 8px 0 0 !important;
+     padding: 6px 8px 0 !important;
+   }
+   
+   .nav-tabs .nav-item { margin-bottom: -2px !important; }
+   
+   .nav-tabs .nav-link {
+     color: var(--wood-warm) !important;
+     border: 1px solid transparent !important;
+     background: transparent !important;
+     font-weight: 600 !important;
+     font-size: 0.83rem !important;
+     padding: 8px 16px !important;
+     border-radius: 6px 6px 0 0 !important;
+     transition: all 0.15s !important;
+   }
+   
+   .nav-tabs .nav-link:hover {
+     background: rgba(184,134,11,0.12) !important;
+     color: var(--wood-dark) !important;
+     border-color: var(--border-warm) var(--border-warm) transparent !important;
+   }
+   
+   .nav-tabs .nav-link.active {
+     background: var(--parchment) !important;
+     color: var(--wood-dark) !important;
+     border-color: var(--border-warm) var(--border-warm) var(--parchment) !important;
+     border-top: 2px solid var(--gold) !important;
+     font-weight: 700 !important;
+   }
+   
+   .tab-content {
+     background: var(--parchment) !important;
+     border: 1px solid var(--border-warm) !important;
+     border-top: none !important;
+     border-radius: 0 0 8px 8px !important;
+     padding: 16px !important;
+   }
+   
+   /* ── Pagination ─────────────────────────────────────────────── */
+   .paginator a {
+     color: var(--wood-warm) !important;
+     border: 1px solid var(--border-warm) !important;
+     border-radius: 4px !important;
+     padding: 2px 8px !important;
+     margin: 0 2px !important;
+     text-decoration: none !important;
+   }
+   .paginator a:hover { background: var(--wood-mid) !important; color: var(--parchment) !important; }
+   .paginator .this-page {
+     background: var(--wood-mid) !important;
+     color: var(--parchment) !important;
+     border-radius: 4px !important;
+     padding: 2px 8px !important;
+   }
+   
+   /* ── Messages / Alerts ──────────────────────────────────────── */
+   .messagelist { padding: 0 !important; list-style: none !important; }
+   
+   .messagelist li, .alert {
+     border-radius: 6px !important;
+     font-size: 0.875rem !important;
+     padding: 10px 16px !important;
+     margin-bottom: 8px !important;
+   }
+   
+   .messagelist li.success, .alert-success {
+     background: rgba(45, 80, 22, 0.1) !important;
+     border: 1px solid var(--green-soft) !important;
+     color: var(--green-lib) !important;
+   }
+   
+   .messagelist li.warning, .alert-warning {
+     background: rgba(184, 134, 11, 0.1) !important;
+     border: 1px solid var(--gold) !important;
+     color: #7a5800 !important;
+   }
+   
+   .messagelist li.error, .errornote, .alert-danger {
+     background: rgba(107, 30, 46, 0.1) !important;
+     border: 1px solid var(--burgundy) !important;
+     color: var(--burgundy) !important;
+   }
+   
+   .errorlist {
+     list-style: none !important;
+     padding: 0 !important;
+     margin: 4px 0 0 !important;
+   }
+   .errorlist li {
+     color: var(--burgundy) !important;
+     font-size: 0.8rem !important;
+     background: rgba(107,30,46,0.07) !important;
+     border: 1px solid rgba(107,30,46,0.2) !important;
+     border-radius: 4px !important;
+     padding: 4px 8px !important;
+     margin-top: 3px !important;
+   }
+   
+   /* Field-level error highlight */
+   .field-error .form-control,
+   .field-error input,
+   .field-error select,
+   .field-error textarea {
+     border-color: var(--burgundy) !important;
+   }
+   
+   /* ── Delete confirmation page ───────────────────────────────── */
+   .delete-confirmation h1 {
+     color: var(--burgundy) !important;
+     font-family: 'Playfair Display', serif !important;
+   }
+   
+   .delete-confirmation .help { color: var(--ink-soft) !important; }
+   
+   .delete-confirmation ul {
+     background: rgba(107,30,46,0.06) !important;
+     border: 1px solid rgba(107,30,46,0.2) !important;
+     border-radius: 6px !important;
+     padding: 12px 20px !important;
+   }
+   
+   /* Cancel link on delete page */
+   .delete-confirmation p a {
+     color: var(--wood-warm) !important;
+     font-weight: 600 !important;
+   }
+   
+   /* ── History / Change log page ───────────────────────────────── */
+   #change-history table thead th {
+     background: linear-gradient(135deg, var(--wood-mid), var(--wood-warm)) !important;
+     color: var(--parchment) !important;
+     font-family: 'Playfair Display', serif !important;
+     padding: 9px 14px !important;
+   }
+   
+   #change-history table tbody tr {
+     background: var(--parchment) !important;
+     border-bottom: 1px solid var(--parchment-dk) !important;
+   }
+   
+   #change-history table tbody tr:nth-child(even) {
+     background: var(--parchment-dk) !important;
+   }
+   
+   #change-history table tbody tr:hover td {
+     background: rgba(184,134,11,0.08) !important;
+   }
+   
+   #change-history table td {
+     color: var(--ink-soft) !important;
+     padding: 9px 14px !important;
+   }
+   
+   /* ── Modal (FK popup) ───────────────────────────────────────── */
+   .modal-content {
+     background: var(--parchment) !important;
+     border: 1px solid var(--border-warm) !important;
+     border-radius: 10px !important;
+   }
+   
+   .modal-header {
+     background: linear-gradient(135deg, var(--wood-mid), var(--wood-warm)) !important;
+     border-bottom: 2px solid var(--gold) !important;
+     border-radius: 9px 9px 0 0 !important;
+     padding: 12px 18px !important;
+   }
+   
+   .modal-title { color: var(--parchment) !important; font-family: 'Playfair Display', serif !important; }
+   .modal-header .close, .modal-header .btn-close { color: var(--parchment) !important; opacity: 0.8 !important; }
+   .modal-footer { background: var(--parchment-dk) !important; border-top: 1px solid var(--border-warm) !important; }
+   
+   /* ── Calendar / date picker widget ─────────────────────────── */
+   .calendarbox, .clockbox {
+     background: var(--parchment) !important;
+     border: 1px solid var(--border-warm) !important;
+     border-radius: 8px !important;
+     box-shadow: 0 4px 12px var(--shadow) !important;
+   }
+   
+   .calendar caption {
+     background: linear-gradient(135deg, var(--wood-mid), var(--wood-warm)) !important;
+     color: var(--parchment) !important;
+     font-weight: 700 !important;
+     padding: 6px !important;
+   }
+   
+   .calendar td a { color: var(--wood-warm) !important; }
+   .calendar td a:hover, .calendar td.selected a { background: var(--wood-mid) !important; color: var(--parchment) !important; }
+   .calendar td.today a { color: var(--gold) !important; font-weight: 700 !important; }
+   
+   .calendarbox .calendarnav a { color: var(--wood-warm) !important; }
+   .timelist a:hover, .timelist a.selected { background: var(--wood-mid) !important; color: var(--parchment) !important; }
+   
+   /* ── Select2 (FK autocomplete) ──────────────────────────────── */
+   .select2-container--default .select2-selection--single,
+   .select2-container--default .select2-selection--multiple {
+     background: var(--parchment) !important;
+     border: 1px solid var(--border-warm) !important;
+     border-radius: 6px !important;
+   }
+   
+   .select2-container--default .select2-results__option--highlighted {
+     background: var(--wood-warm) !important;
+     color: var(--parchment) !important;
+   }
+   
+   .select2-dropdown {
+     background: var(--parchment) !important;
+     border: 1px solid var(--border-warm) !important;
+     border-radius: 6px !important;
+     box-shadow: 0 4px 12px var(--shadow) !important;
+   }
+   
+   .select2-search--dropdown .select2-search__field {
+     background: var(--cream) !important;
+     border: 1px solid var(--border-warm) !important;
+     border-radius: 4px !important;
+   }
+   
+   .select2-container--default .select2-selection__choice {
+     background: var(--wood-light) !important;
+     border-color: var(--wood-mid) !important;
+     color: var(--parchment) !important;
+     border-radius: 4px !important;
+   }
+   
+   /* ── Footer ─────────────────────────────────────────────────── */
+   .main-footer {
+     background: var(--parchment-dk) !important;
+     border-top: 1px solid var(--border-warm) !important;
+     color: var(--ink-soft) !important;
+     font-size: 0.78rem !important;
+   }
+   
+   /* ── Login page ─────────────────────────────────────────────── */
+   body.login {
+     background: linear-gradient(135deg, var(--wood-dark) 0%, var(--wood-mid) 50%, var(--wood-warm) 100%) !important;
+   }
+   
+   #login-form {
+     background: var(--parchment) !important;
+     border: 1px solid var(--border-warm) !important;
+     border-radius: 12px !important;
+     box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
+     padding: 28px !important;
+   }
+   
+   .login #header {
+     background: transparent !important;
+     text-align: center !important;
+     margin-bottom: 16px !important;
+   }
+   
+   .login #branding h1 {
+     color: var(--parchment) !important;
+     font-family: 'Playfair Display', serif !important;
+     font-size: 2rem !important;
+     text-shadow: 0 2px 6px rgba(0,0,0,0.4) !important;
+   }
+   
+   #login-form input[type="text"],
+   #login-form input[type="password"] {
+     background: var(--cream) !important;
+   }
+   
+   .login .submit-row {
+     background: transparent !important;
+     border: none !important;
+     justify-content: center !important;
+   }
+   
+   /* ── Popup windows ──────────────────────────────────────────── */
+   body.popup .content-wrapper {
+     background: var(--cream) !important;
+   }
+   
+   /* ── Responsive tweaks ──────────────────────────────────────── */
+   @media (max-width: 767px) {
+     .stats-grid { grid-template-columns: 1fr 1fr !important; }
+     .dashboard-cols { grid-template-columns: 1fr !important; }
+     .quick-actions { grid-template-columns: repeat(2, 1fr) !important; }
+     #changelist-filter { margin-top: 16px !important; }
+   }
+   
+   @media (max-width: 480px) {
+     .stats-grid { grid-template-columns: 1fr !important; }
+   }
