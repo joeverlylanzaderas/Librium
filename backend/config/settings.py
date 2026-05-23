@@ -84,8 +84,12 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('DB_NAME'),
+        'USER': os.environ.get('DB_USER'),
+        'PASSWORD': os.environ.get('DB_PASSWORD'),
+        'HOST': os.environ.get('DB_HOST'),
+        'PORT': os.environ.get('DB_PORT'),
     }
 }
 
@@ -128,6 +132,17 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
 }
 
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+DOMAIN = 'librium'
+SITE_NAME = 'Librium Library'
+
 
 # ─────────────────────────────────────────────
 # DJOSER
@@ -137,7 +152,7 @@ DJOSER = {
     'LOGIN_FIELD': 'email',                  
     'USER_CREATE_PASSWORD_RETYPE': False,    
     'SEND_ACTIVATION_EMAIL': True,
-    'ACTIVATION_URL': 'activate/{uid}/{token}',   
+    'ACTIVATION_URL': 'activate/{uid}/{token}',  
     'PASSWORD_RESET_CONFIRM_URL': 'password/reset/confirm/{uid}/{token}',
     'SERIALIZERS': {
         'user_create': 'user.serializers.UserCreateSerializer',
@@ -147,12 +162,6 @@ DJOSER = {
 }
 
 
-# ─────────────────────────────────────────────
-# EMAIL  —  console backend for development
-# Emails print to the terminal instead of being sent.
-# Copy the activation link from the terminal output to activate accounts.
-# Switch to smtp.EmailBackend (or similar) for production.
-# ─────────────────────────────────────────────
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
