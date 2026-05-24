@@ -182,7 +182,7 @@ DJOSER = {
     },
     
     'EMAIL': {
-        'activation': 'user.email.ActivationEmail',  
+        'activation': 'user.emails.ActivationEmail',  
     },
 }
 
