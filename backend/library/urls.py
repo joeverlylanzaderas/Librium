@@ -39,7 +39,6 @@ urlpatterns = [
     # ── Loans ─────────────────────────────────────────────────
     path('loans/', views.LoanListCreateAPIView.as_view(), name='loan-list-create'),
 
-    # FIX: flat action URLs — views read loan_id from request body, not URL
     # matches api.ts: req('POST', '/library/loans/return-request/', { loan_id, notes })
     path('loans/return-request/', views.LoanReturnRequestAPIView.as_view(),  name='loan-return-request'),
     # matches api.ts: req('POST', '/library/loans/return-verify/', { loan_id, status, notes })
@@ -53,6 +52,7 @@ urlpatterns = [
     # ── Reservations ──────────────────────────────────────────
     path('reservations/',          views.ReservationListCreateAPIView.as_view(),          name='reservation-list-create'),
     path('reservations/<int:pk>/', views.ReservationRetrieveUpdateDestroyAPIView.as_view(), name='reservation-detail'),
+    path('reservations/<int:pk>/fulfill/', views.ReservationFulfillAPIView.as_view(), name='reservation-fulfill'),
 
     # ── Fines ─────────────────────────────────────────────────
     path('fines/',                views.FineListAPIView.as_view(),     name='fine-list'),

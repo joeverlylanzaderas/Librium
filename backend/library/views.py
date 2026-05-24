@@ -22,7 +22,7 @@ from .serializers import (
     BorrowRequestSerializer, BorrowRequestCreateSerializer, BorrowRequestActionSerializer,
     LoanSerializer, LoanCreateSerializer, LoanReturnRequestSerializer,
     LoanReturnVerifySerializer, ReservationSerializer, ReservationCreateSerializer,
-    FineSerializer, SemesterSerializer,
+    FineSerializer, SemesterSerializer, 
 )
 from library.permissions import IsAdminOrLibrarian
 from django.contrib.auth import get_user_model
@@ -653,6 +653,51 @@ class ReservationRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIV
 
         return Response(
             {'message': 'Reservation cancelled successfully.'},
+            status=status.HTTP_200_OK
+        )
+    
+class ReservationFulfillAPIView(APIView):
+    """
+    POST /api/library/reservations/<pk>/fulfill/
+    Admin/Librarian creates a loan from a ready reservation.
+    """
+    permission_classes = [IsAuthenticated, IsAdminOrLibrarian]
+
+    def post(self, request, pk):
+        reservation = get_object_or_404(
+            Reservation.objects.select_related('member', 'book'),
+            pk=pk
+        )
+
+        if reservation.status != 'ready':
+            return Response(
+                {'error': f'Cannot fulfill reservation with status "{reservation.status}". Only "ready" reservations can be fulfilled.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not reservation.book.available:
+            return Response(
+                {'error': 'This book is no longer available.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        with transaction.atomic():
+            # Create the loan
+            loan = Loan.objects.create(
+                member=reservation.member,
+                book=reservation.book,
+            )
+
+            # Update reservation status
+            reservation.status = 'fulfilled'
+            reservation.save()
+
+        return Response(
+            {
+                'message': 'Reservation fulfilled and loan created successfully.',
+                'loan_id': loan.id,
+                'reservation_id': reservation.id
+            },
             status=status.HTTP_200_OK
         )
 

@@ -60,18 +60,15 @@ export const AuthProvider = ({
   }, []);
 
   // ── Login ────────────────────────────────────────────
-  const signIn = async (
-    token: string,
-    userData: User
-  ) => {
+  const signIn = async (token: string, userData: User) => {
+    console.log('🔐 SignIn - Setting token:', !!token);
     await setToken(token);
-
-    await AsyncStorage.setItem(
-      'user',
-      JSON.stringify(userData)
-    );
-
+    await AsyncStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
+    
+    // Verify token was stored
+    const savedToken = await AsyncStorage.getItem('token');
+    console.log('🔐 Token saved successfully:', !!savedToken);
   };
 
   // ── Logout ───────────────────────────────────────────
