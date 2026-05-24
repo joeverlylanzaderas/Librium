@@ -490,41 +490,43 @@ class LoanReturnVerifyAPIView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        loan          = get_object_or_404(Loan, id=serializer.validated_data['loan_id'])
+        loan = get_object_or_404(Loan, id=serializer.validated_data['loan_id'])
         status_choice = serializer.validated_data['status']
 
         if status_choice == 'verified':
             today = timezone.now().date()
-            loan.return_date          = today
+            loan.return_date = today
             loan.return_verified_date = today
-            loan.return_status        = 'verified'
-            loan.verified_by          = request.user
+            loan.return_status = 'verified'
+            loan.verified_by = request.user
             loan.save()
+
+            loan.book.available = True
+            loan.book.save(update_fields=['available'])
 
             if loan.is_overdue:
                 Fine.objects.get_or_create(
                     loan=loan,
                     defaults={
-                        'member':    loan.member,
-                        'amount':    loan.overdue_days * FINE_RATE_PER_DAY,
+                        'member': loan.member,
+                        'amount': loan.overdue_days * FINE_RATE_PER_DAY,
                         'issued_by': request.user,
-                        'paid':      False,
+                        'paid': False,
                     }
                 )
 
+            # Check for waiting reservations
             next_reservation = Reservation.objects.filter(
                 book=loan.book, status='waiting'
             ).order_by('reserved_date').first()
 
             if next_reservation:
-                next_reservation.status        = 'ready'
+                next_reservation.status = 'ready'
                 next_reservation.notified_date = timezone.now().date()
                 next_reservation.save()
-                loan.book.available = False
-                loan.book.save(update_fields=['available'])
 
         elif status_choice == 'rejected':
-            loan.return_status         = 'rejected'
+            loan.return_status = 'rejected'
             loan.return_requested_date = None
             loan.save()
 
@@ -657,10 +659,6 @@ class ReservationRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIV
         )
     
 class ReservationFulfillAPIView(APIView):
-    """
-    POST /api/library/reservations/<pk>/fulfill/
-    Admin/Librarian creates a loan from a ready reservation.
-    """
     permission_classes = [IsAuthenticated, IsAdminOrLibrarian]
 
     def post(self, request, pk):
@@ -692,6 +690,9 @@ class ReservationFulfillAPIView(APIView):
             reservation.status = 'fulfilled'
             reservation.save()
 
+            reservation.book.available = False
+            reservation.book.save(update_fields=['available'])
+
         return Response(
             {
                 'message': 'Reservation fulfilled and loan created successfully.',
@@ -700,7 +701,6 @@ class ReservationFulfillAPIView(APIView):
             },
             status=status.HTTP_200_OK
         )
-
 
 # ─────────────────────────────────────────────
 #  FINE
