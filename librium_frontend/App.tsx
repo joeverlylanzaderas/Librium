@@ -1,28 +1,38 @@
+// ── App.tsx ───────────────────────────────────────────────
 import React, { useEffect, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { View, LogBox } from 'react-native';
 import { NavigationContainer, LinkingOptions, DefaultTheme } from '@react-navigation/native';
 import { AuthProvider } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
-
-// ── 1. Import Custom Font Engine & Hooks ─────────────────────
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
-import { Fonts } from './src/constants/theme'; // Import your custom font tokens
+import { Fonts } from './src/constants/theme'; 
 
-// Prevent splash screen auto-hiding while assets download
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-// ── Define Web Address URL Mapping ───────────────────────────
+// ── Corrected Linking Configurations ──────────────────────────
 const linking: LinkingOptions<any> = {
-  prefixes: ['http://localhost:8081', 'libraryapp://'],
+  prefixes: [
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+    'http://10.0.2.2:8000',          // Android emulator → host machine
+    'https://librium.onrender.com',   // production
+    'librium://',
+  ],
   config: {
     screens: {
-      AuthRoot: {
-        path: 'auth',
-        screens: { Login: 'login' },
+      // Matches the "Authentication" screen name in AppNavigator
+      Authentication: {
+        path: '',
+        screens: {
+          // Captures "activate/uid/token" sent by Django/Djoser
+          Login: 'login',
+          Register: 'register',
+        },
       },
-      AdminRoot: {
+      // Matches the "Admin" stack screen name AppNavigator
+      Admin: {
         path: 'admin',
         screens: {
           Dashboard: 'dashboard',
@@ -37,7 +47,8 @@ const linking: LinkingOptions<any> = {
           Semesters: 'semesters',
         },
       },
-      LibrarianRoot: {
+      // Matches the "Librarian" stack screen name in AppNavigator
+      Librarian: {
         path: 'librarian',
         screens: {
           LibrarianDashboard: 'dashboard',
@@ -49,7 +60,8 @@ const linking: LinkingOptions<any> = {
           LibrarianMembers: 'members',
         },
       },
-      BorrowRoot: {
+      // Matches the "Borrower" stack screen name in your AppNavigator
+      Borrower: {
         path: 'borrower',
         screens: {
           BorrowerHome: 'home',
@@ -66,7 +78,6 @@ const linking: LinkingOptions<any> = {
 
 // ── Root App Component ────────────────────────────────────────
 export default function App() {
-  // ── 2. Load Literata Binary Files directly into Memory ──────
   const [fontsLoaded, fontError] = useFonts({
     'Literata-Italic': require('./assets/fonts/Literata-Italic.ttf'),
     'Literata-Light': require('./assets/fonts/Literata-Light.ttf'),
@@ -84,7 +95,6 @@ export default function App() {
     'Gloock-Regular': require('./assets/fonts/Gloock-Regular.ttf'),
   });
 
-  // Drop splash handler once asset hook yields results
   const onLayoutRootView = useCallback(async () => {
     if (fontsLoaded || fontError) {
       await SplashScreen.hideAsync();
@@ -95,8 +105,6 @@ export default function App() {
     return null;
   }
 
-  // ── 3. Build a Native Navigation Overriding Theme ───────────
-  // This actively forces top navigation header components to use Literata!
   const CustomNavigationTheme = {
     ...DefaultTheme,
     fonts: {
@@ -123,7 +131,6 @@ export default function App() {
   return (
     <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
       <AuthProvider>
-        {/* Pass the Custom Navigation font mapper down into the wrapper context */}
         <NavigationContainer linking={linking} theme={CustomNavigationTheme}>
           <StatusBar style="light" />
           <AppNavigator />

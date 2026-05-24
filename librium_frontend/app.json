@@ -2,6 +2,7 @@
   "expo": {
     "name": "Librium",
     "slug": "librium",
+    "scheme": "librium",
     "version": "1.0.0",
     "orientation": "portrait",
     "backgroundColor": "#0f1117",
@@ -10,7 +11,19 @@
       "adaptiveIcon": {
         "backgroundColor": "#0f1117"
       },
-      "package": "com.jvrly.css.librium"
+      "package": "com.jvrly.css.librium",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "librium"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "ios": {
       "supportsTablet": false

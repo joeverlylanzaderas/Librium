@@ -138,30 +138,42 @@ export default function BooksScreen({ navigation }: Props) {
     setUploadingImage(true);
     const data = new FormData();
 
-    // Critical part: Append the file correctly.
-    // - 'uri' is the path to the file on the device.
-    // - 'type' should be the MIME type (e.g., 'image/jpeg').
-    // - 'name' is the filename you want to give it on Cloudinary.
-    data.append('file', {
-      uri: form.cover_image_file.uri,
-      type: form.cover_image_file.type,
-      name: form.cover_image_file.name,
-    } as any); // 'as any' can sometimes be needed for TypeScript with FormData
+    // 🎯 FIX: Web compatibility fallback handling for Blob streaming
+    if (Platform.OS === 'web') {
+      try {
+        // Fetch the raw local file binary structure directly from your blob URI pointer
+        const responseBlob = await fetch(form.cover_image_file.uri);
+        const fileBlob = await responseBlob.blob();
+        
+        // Append it cleanly as a standard native file stream object structure
+        data.append('file', fileBlob, form.cover_image_file.name);
+      } catch (blobError) {
+        console.error('Error constructing binary blob object for web:', blobError);
+        setUploadingImage(false);
+        return null;
+      }
+    } else {
+      // Keep your native mobile format structure safe for Android & iOS packaging targets
+      data.append('file', {
+        uri: form.cover_image_file.uri,
+        type: form.cover_image_file.type,
+        name: form.cover_image_file.name,
+      } as any);
+    }
 
-    data.append('upload_preset', 'librium_preset');
+    data.append('upload_preset', 'librium_covers');
     data.append('cloud_name', 'dz5b4xsjy');
 
     try {
       const response = await fetch('https://api.cloudinary.com/v1_1/dz5b4xsjy/image/upload', {
         method: 'POST',
         body: data,
-        // Do NOT set 'Content-Type' header manually; fetch will set the correct one with boundary
         headers: {
           'Accept': 'application/json',
         },
       });
 
-      const responseText = await response.text(); // Get raw response for debugging
+      const responseText = await response.text(); 
       console.log('Cloudinary Response Status:', response.status);
       console.log('Cloudinary Response Text:', responseText);
 
@@ -171,14 +183,14 @@ export default function BooksScreen({ navigation }: Props) {
           const errorJson = JSON.parse(responseText);
           errorDetail = errorJson.error?.message || responseText;
         } catch (e) {
-          // Ignore JSON parse error
+          // Ignore JSON parsing errors safely
         }
         throw new Error(`Upload failed (${response.status}): ${errorDetail}`);
       }
 
       const dataJson = JSON.parse(responseText);
       return dataJson.secure_url;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Cloudinary Upload Error:', error);
       Alert.alert('Upload Failed', error.message || 'Could not upload image. Please try again.');
       return null;
@@ -193,7 +205,7 @@ export default function BooksScreen({ navigation }: Props) {
     }
     setSaving(true);
     try {
-      let coverUrl = editingItem?.cover_image_url || null;
+      let coverUrl = editingItem?.cover_image || null;
       
       if (form.cover_image_file) {
         const uploadedUrl = await uploadImageToCloudinary();
@@ -203,14 +215,17 @@ export default function BooksScreen({ navigation }: Props) {
       const payload: any = {
         title:            form.title,
         isbn:             form.isbn,
-        publication_year: form.publication_year ? parseInt(form.publication_year) : undefined,
+        publication_year: form.publication_year && form.publication_year.trim() !== '' 
+                            ? parseInt(form.publication_year) 
+                            : null, 
         description:      form.description || undefined,
         available:        form.available,
+        cover_image:      coverUrl,
       };
-      if (coverUrl) payload.cover_image_url = coverUrl;
-      if (form.author)     payload.author     = parseInt(form.author);
-      if (form.category)   payload.category   = parseInt(form.category);
-      if (form.department) payload.department = parseInt(form.department);
+
+      payload.author     = form.author && form.author.trim() !== '' ? parseInt(form.author) : null;
+      payload.category   = form.category && form.category.trim() !== '' ? parseInt(form.category) : null;
+      payload.department = form.department && form.department.trim() !== '' ? parseInt(form.department) : null;
 
       if (editingItem) await updateBook(editingItem.id, payload);
       else             await createBook(payload);
@@ -219,6 +234,9 @@ export default function BooksScreen({ navigation }: Props) {
       resetForm();
       load();
     } catch (e: any) {
+      // Log the actual exact error message from Django to your console so you can see the field violation
+      console.log("Django validation errors detail:", JSON.stringify(e?.data, null, 2));
+      
       const msg = e?.data?.isbn?.[0] ?? e?.data?.title?.[0] ?? e?.data?.detail ?? 'Operation failed.';
       Alert.alert('Error', msg);
     } finally {
@@ -330,8 +348,9 @@ export default function BooksScreen({ navigation }: Props) {
                   <View style={s.cardContent}>
                     {/* Cover Image */}
                     <View style={s.coverSection}>
-                      {item.cover_image_url ? (
-                        <Image source={{ uri: item.cover_image_url }} style={s.coverThumb} />
+                      {/* 🎯 FIX: Changed item.cover_image_url to item.cover_image */}
+                      {item.cover_image ? (
+                        <Image source={{ uri: item.cover_image }} style={s.coverThumb} />
                       ) : (
                         <View style={s.coverPlaceholder}>
                           <Feather name="image" size={24} color="#C4A77D" />
@@ -391,7 +410,8 @@ export default function BooksScreen({ navigation }: Props) {
                             department:       item.department?.toString() ?? '',
                             description:      item.description ?? '',
                             available:        item.available ?? true,
-                            cover_image:      item.cover_image_url ?? null,
+                            // 🎯 FIX: Changed item.cover_image_url to item.cover_image
+                            cover_image:      item.cover_image ?? null,
                             cover_image_file: null,
                           });
                           setModal(true);
