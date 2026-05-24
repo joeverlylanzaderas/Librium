@@ -157,6 +157,7 @@ ANYMAIL = {
 }
 EMAIL_TIMEOUT       = 60
 DEFAULT_FROM_EMAIL  = 'lanzaderas.joeverlypearl04@gmail.com'
+EMAIL_SUBJECT_PREFIX = '[Librium] '  
 
 DOMAIN    = os.environ.get('DOMAIN', 'librium.onrender.com')
 SITE_NAME = 'Librium Library'
@@ -181,6 +182,7 @@ DJOSER = {
         'user':         'user.serializers.UserSerializer',
         'current_user': 'user.serializers.UserSerializer',
     },
+    
 }
 
 # ─────────────────────────────────────────────

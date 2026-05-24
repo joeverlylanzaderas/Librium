@@ -18,6 +18,11 @@ class ActivationEmail(DjoserActivationEmail):
     - is_active = False is still set by the model default (instructor flow works)
     """
 
+    def get_context_data(self):
+        context = super().get_context_data()
+        context['subject'] = 'Activate Your Librium Account'
+        return context
+    
     def send(self, to, *args, **kwargs):
         thread = threading.Thread(
             target=super().send,
