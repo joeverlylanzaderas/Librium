@@ -16,8 +16,9 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'librium.onrender.com']
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = True  # development only
 
-FRONTEND_LOGIN_URL    = '/'
-FRONTEND_REGISTER_URL = '/'
+# Frontend URLs
+FRONTEND_LOGIN_URL = 'https://librium-web.netlify.app/login'
+FRONTEND_REGISTER_URL = 'https://librium-web.netlify.app/register'
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
@@ -25,6 +26,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:8081",
     "http://127.0.0.1:8081",
     "https://librium.onrender.com",
+    "https://librium-web.netlify.app",
 
     "http://localhost:19006",   # Expo web alternate port
     "http://localhost:19000",   # Expo Go

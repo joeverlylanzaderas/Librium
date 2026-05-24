@@ -38,6 +38,21 @@ node_modules/
 dist/
 web-build/
 
+# Expo build artifacts
+dist/
+web-build/
+.claude/
+
+# Netlify
+.netlify/
+
+# Environment variables (frontend)
+.env.local
+.env.production
+
+# Debug
+.expo-shared/
+
 # Metro
 .metro-health-check*
 

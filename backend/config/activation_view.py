@@ -9,36 +9,30 @@ from django.contrib.auth.tokens import default_token_generator
 
 User = get_user_model()
 
-# The frontend login URL — update this to your deployed frontend URL
-# e.g. https://librium.onrender.com/login  or  your Expo web URL
-#FRONTEND_LOGIN_URL    = getattr(settings, 'FRONTEND_LOGIN_URL',    '/')
-#FRONTEND_REGISTER_URL = getattr(settings, 'FRONTEND_REGISTER_URL', '/')
-
-FRONTEND_LOGIN_URL    = '/'
-FRONTEND_REGISTER_URL = '/'
+# Get URLs from settings (so they can be configured per environment)
+FRONTEND_LOGIN_URL    = getattr(settings, 'FRONTEND_LOGIN_URL', 'https://librium-web.netlify.app/login')
+FRONTEND_REGISTER_URL = getattr(settings, 'FRONTEND_REGISTER_URL', 'https://librium-web.netlify.app/register')
 
 class ActivateAccountView(View):
     def get(self, request, uid, token):
-
         # ── Validate uid ──────────────────────────────────────────
         try:
             user_id = decode_uid(uid)
-            user    = User.objects.get(pk=user_id)
+            user = User.objects.get(pk=user_id)
         except (ObjectDoesNotExist, ValueError, TypeError):
             return render(request, 'activation.html', {
-                'success':      False,
-                'message':      'This activation link is invalid or has been tampered with.',
-                'login_url':    FRONTEND_LOGIN_URL,
+                'success': False,
+                'message': 'This activation link is invalid or has been tampered with.',
+                'login_url': FRONTEND_LOGIN_URL,
                 'register_url': FRONTEND_REGISTER_URL,
             })
 
         # ── Validate token ────────────────────────────────────────
         if not default_token_generator.check_token(user, token):
             return render(request, 'activation.html', {
-                'success':      False,
-                'message':      'This link has expired or has already been used. '
-                                'Links are valid for 24 hours — please register again.',
-                'login_url':    FRONTEND_LOGIN_URL,
+                'success': False,
+                'message': 'This link has expired or has already been used. Links are valid for 24 hours — please register again.',
+                'login_url': FRONTEND_LOGIN_URL,
                 'register_url': FRONTEND_REGISTER_URL,
             })
 
@@ -51,16 +45,19 @@ class ActivateAccountView(View):
 
         # ── Detect mobile client ──────────────────────────────────
         user_agent = request.META.get('HTTP_USER_AGENT', '').lower()
-        is_mobile  = 'android' in user_agent or 'iphone' in user_agent or 'expo' in user_agent
+        is_mobile = 'android' in user_agent or 'iphone' in user_agent or 'expo' in user_agent
+
+        # For web users, send to Netlify login page
+        login_url_for_user = 'librium://activated' if is_mobile else FRONTEND_LOGIN_URL
 
         return render(request, 'activation.html', {
-            'success':        True,
+            'success': True,
             'already_active': already_active,
-            'message':        'Your Librium account is now active. You can sign in.',
-            'uid':            uid,
-            'token':          token,
-            'is_mobile':      is_mobile,
-            'app_link':       'librium://activated',
-            'login_url':      FRONTEND_LOGIN_URL,
-            'register_url':   FRONTEND_REGISTER_URL,
+            'message': 'Your Librium account is now active. You can sign in.',
+            'uid': uid,
+            'token': token,
+            'is_mobile': is_mobile,
+            'app_link': 'librium://activated',
+            'login_url': login_url_for_user,  # Mobile gets deep link, web gets Netlify URL
+            'register_url': FRONTEND_REGISTER_URL,
         })
