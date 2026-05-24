@@ -157,7 +157,8 @@ ANYMAIL = {
 }
 EMAIL_TIMEOUT       = 60
 DEFAULT_FROM_EMAIL  = 'lanzaderas.joeverlypearl04@gmail.com'
-EMAIL_SUBJECT_PREFIX = '[Librium] '  
+EMAIL_SUBJECT_PREFIX = ''
+DEFAULT_EMAIL_SUBJECT = 'Activate Your Librium Account'
 
 DOMAIN    = os.environ.get('DOMAIN', 'librium.onrender.com')
 SITE_NAME = 'Librium Library'
