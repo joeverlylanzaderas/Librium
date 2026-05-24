@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, Alert, Modal, TextInput,
-  RefreshControl, TouchableOpacity, ActivityIndicator,
+  RefreshControl, TouchableOpacity, ActivityIndicator, Image,
   useWindowDimensions, Platform,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import { Card, Btn, Empty, Loading, SectionHeader } from '../../components/UI';
@@ -19,7 +20,6 @@ type Props = {
   navigation: NativeStackNavigationProp<AdminStackParamList, 'Books'>;
 };
 
-// ── Shared confirm helper (matches CatalogScreens) ─────────────
 const confirm = (title: string, message: string, onConfirm: () => void) => {
   if (typeof window !== 'undefined') {
     if (window.confirm(`${title}\n\n${message}`)) onConfirm();
@@ -31,7 +31,6 @@ const confirm = (title: string, message: string, onConfirm: () => void) => {
   }
 };
 
-// ── Availability badge colors ──────────────────────────────────
 const AVAIL_COLORS = {
   available: { bg: '#E6F4EA', text: '#137333', border: '#B7DFC4' },
   on_loan:   { bg: '#FCE8E6', text: '#8A2B2B', border: '#F5C2BC' },
@@ -50,12 +49,11 @@ export default function BooksScreen({ navigation }: Props) {
   const [editingItem, setEditingItem] = useState<any>(null);
   const [saving, setSaving]         = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
-  // Search / filter
   const [search, setSearch]         = useState('');
   const [filterAvail, setFilterAvail] = useState<'all' | 'available' | 'borrowed'>('all');
 
-  // Added available to the initial form state structure
   const [form, setForm] = useState({
     title:            '',
     isbn:             '',
@@ -64,7 +62,9 @@ export default function BooksScreen({ navigation }: Props) {
     category:         '',
     department:       '',
     description:      '',
-    available:        true, 
+    available:        true,
+    cover_image:      null as string | null,
+    cover_image_file: null as any,
   });
 
   const load = useCallback(async () => {
@@ -95,9 +95,96 @@ export default function BooksScreen({ navigation }: Props) {
       category: '', 
       department: '', 
       description: '', 
-      available: true 
+      available: true,
+      cover_image: null,
+      cover_image_file: null,
     });
     setEditingItem(null);
+  };
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [2, 3],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      
+      // DEBUG: Log the full asset object
+      console.log('Full asset:', JSON.stringify(asset, null, 2));
+      console.log('Asset URI:', asset.uri);
+      console.log('Asset type:', asset.type);
+      console.log('Asset mimeType:', asset.mimeType);
+      console.log('Asset fileName:', asset.fileName);
+      
+      setForm({ 
+        ...form, 
+        cover_image_file: {
+          uri: asset.uri,
+          type: asset.mimeType || 'image/jpeg',
+          name: asset.fileName || `cover_${Date.now()}.jpg`,
+        },
+        cover_image: asset.uri,
+      });
+    }
+  };
+
+  const uploadImageToCloudinary = async () => {
+    if (!form.cover_image_file) return null;
+
+    setUploadingImage(true);
+    const data = new FormData();
+
+    // Critical part: Append the file correctly.
+    // - 'uri' is the path to the file on the device.
+    // - 'type' should be the MIME type (e.g., 'image/jpeg').
+    // - 'name' is the filename you want to give it on Cloudinary.
+    data.append('file', {
+      uri: form.cover_image_file.uri,
+      type: form.cover_image_file.type,
+      name: form.cover_image_file.name,
+    } as any); // 'as any' can sometimes be needed for TypeScript with FormData
+
+    data.append('upload_preset', 'librium_preset');
+    data.append('cloud_name', 'dz5b4xsjy');
+
+    try {
+      const response = await fetch('https://api.cloudinary.com/v1_1/dz5b4xsjy/image/upload', {
+        method: 'POST',
+        body: data,
+        // Do NOT set 'Content-Type' header manually; fetch will set the correct one with boundary
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+
+      const responseText = await response.text(); // Get raw response for debugging
+      console.log('Cloudinary Response Status:', response.status);
+      console.log('Cloudinary Response Text:', responseText);
+
+      if (!response.ok) {
+        let errorDetail = responseText;
+        try {
+          const errorJson = JSON.parse(responseText);
+          errorDetail = errorJson.error?.message || responseText;
+        } catch (e) {
+          // Ignore JSON parse error
+        }
+        throw new Error(`Upload failed (${response.status}): ${errorDetail}`);
+      }
+
+      const dataJson = JSON.parse(responseText);
+      return dataJson.secure_url;
+    } catch (error) {
+      console.error('Cloudinary Upload Error:', error);
+      Alert.alert('Upload Failed', error.message || 'Could not upload image. Please try again.');
+      return null;
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const handleSave = async () => {
@@ -106,13 +193,21 @@ export default function BooksScreen({ navigation }: Props) {
     }
     setSaving(true);
     try {
+      let coverUrl = editingItem?.cover_image_url || null;
+      
+      if (form.cover_image_file) {
+        const uploadedUrl = await uploadImageToCloudinary();
+        if (uploadedUrl) coverUrl = uploadedUrl;
+      }
+
       const payload: any = {
         title:            form.title,
         isbn:             form.isbn,
         publication_year: form.publication_year ? parseInt(form.publication_year) : undefined,
         description:      form.description || undefined,
-        available:        form.available, // Added to backend payload
+        available:        form.available,
       };
+      if (coverUrl) payload.cover_image_url = coverUrl;
       if (form.author)     payload.author     = parseInt(form.author);
       if (form.category)   payload.category   = parseInt(form.category);
       if (form.department) payload.department = parseInt(form.department);
@@ -149,7 +244,6 @@ export default function BooksScreen({ navigation }: Props) {
     );
   };
 
-  // Filtered list
   const filtered = items.filter((b) => {
     const matchSearch =
       b.title?.toLowerCase().includes(search.toLowerCase()) ||
@@ -162,7 +256,6 @@ export default function BooksScreen({ navigation }: Props) {
     return matchSearch && matchAvail;
   });
 
-  // Responsive grid
   const cols    = width > 1024 ? 3 : width > 640 ? 2 : 1;
   const GAP     = 16;
   const PADDING = width > 768 ? 48 : 32;
@@ -183,7 +276,6 @@ export default function BooksScreen({ navigation }: Props) {
             />
           }
         >
-          {/* ── Header ── */}
           <View style={s.headerContainer}>
             <Text style={s.headerTitle}>Books ({filtered.length})</Text>
             <TouchableOpacity
@@ -196,7 +288,6 @@ export default function BooksScreen({ navigation }: Props) {
             </TouchableOpacity>
           </View>
 
-          {/* ── Search + filter ── */}
           <View style={s.toolbar}>
             <View style={s.searchWrap}>
               <Feather name="search" size={14} color="#A1927F" style={{ marginRight: 6 }} />
@@ -230,7 +321,6 @@ export default function BooksScreen({ navigation }: Props) {
 
           {filtered.length === 0 && <Empty text="No books found." />}
 
-          {/* ── Grid ── */}
           <View style={s.gridContainer}>
             {filtered.map((item) => {
               const avail = item.available;
@@ -238,21 +328,29 @@ export default function BooksScreen({ navigation }: Props) {
               return (
                 <Card key={item.id} style={{ ...s.customCard, width: cardW }}>
                   <View style={s.cardContent}>
-                    <View style={s.cardInfo}>
-                      {/* Availability pill */}
-                      <View style={[s.availPill, { backgroundColor: badge.bg, borderColor: badge.border }]}>
-                        <Text style={[s.availTxt, { color: badge.text }]}>
-                          {avail ? 'Available' : 'On Loan'}
-                        </Text>
+                    {/* Cover Image */}
+                    <View style={s.coverSection}>
+                      {item.cover_image_url ? (
+                        <Image source={{ uri: item.cover_image_url }} style={s.coverThumb} />
+                      ) : (
+                        <View style={s.coverPlaceholder}>
+                          <Feather name="image" size={24} color="#C4A77D" />
+                        </View>
+                      )}
+                      <View style={s.coverInfo}>
+                        <View style={[s.availPill, { backgroundColor: badge.bg, borderColor: badge.border }]}>
+                          <Text style={[s.availTxt, { color: badge.text }]}>
+                            {avail ? 'Available' : 'On Loan'}
+                          </Text>
+                        </View>
+                        <Text style={s.itemTitle} numberOfLines={2}>{item.title}</Text>
                       </View>
+                    </View>
 
-                      <Text style={s.itemTitle} numberOfLines={2}>{item.title}</Text>
-
+                    <View style={s.cardInfo}>
                       <View style={s.metaRow}>
                         <Feather name="user" size={11} color="#A1927F" />
-                        <Text style={s.itemMeta} numberOfLines={1}>
-                          {item.author_name ?? '—'}
-                        </Text>
+                        <Text style={s.itemMeta} numberOfLines={1}>{item.author_name ?? '—'}</Text>
                       </View>
                       <View style={s.metaRow}>
                         <Feather name="hash" size={11} color="#A1927F" />
@@ -278,7 +376,6 @@ export default function BooksScreen({ navigation }: Props) {
                       )}
                     </View>
 
-                    {/* Actions */}
                     <View style={s.cardActions}>
                       <TouchableOpacity
                         style={s.actionButton}
@@ -293,7 +390,9 @@ export default function BooksScreen({ navigation }: Props) {
                             category:         item.category?.toString() ?? '',
                             department:       item.department?.toString() ?? '',
                             description:      item.description ?? '',
-                            available:        item.available ?? true, // Loaded into form state on edit
+                            available:        item.available ?? true,
+                            cover_image:      item.cover_image_url ?? null,
+                            cover_image_file: null,
                           });
                           setModal(true);
                         }}
@@ -320,7 +419,6 @@ export default function BooksScreen({ navigation }: Props) {
           </View>
         </ScrollView>
 
-        {/* ── Add / Edit Modal ── */}
         <Modal
           visible={modal}
           animationType="fade"
@@ -340,8 +438,31 @@ export default function BooksScreen({ navigation }: Props) {
               <View style={s.sheetDivider} />
 
               <ScrollView showsVerticalScrollIndicator={false} style={s.modalScroll}>
+                
+                {/* Cover Image Upload */}
+                <View style={s.modalInputWrapper}>
+                  <Text style={s.modalInputLabel}>Book Cover</Text>
+                  <TouchableOpacity style={s.imagePickerBtn} onPress={pickImage}>
+                    {form.cover_image ? (
+                      <Image source={{ uri: form.cover_image }} style={s.imagePreview} />
+                    ) : (
+                      <View style={s.imagePlaceholder}>
+                        <Feather name="upload" size={24} color="#A1927F" />
+                        <Text style={s.imagePlaceholderText}>Tap to upload cover image</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                  {form.cover_image && (
+                    <TouchableOpacity 
+                      style={s.removeImageBtn} 
+                      onPress={() => setForm({ ...form, cover_image: null, cover_image_file: null })}
+                    >
+                      <Feather name="x-circle" size={16} color="#C53030" />
+                      <Text style={s.removeImageText}>Remove Image</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
 
-                {/* Title */}
                 <View style={s.modalInputWrapper}>
                   <Text style={s.modalInputLabel}>Title *</Text>
                   <View style={s.customInputContainer}>
@@ -355,7 +476,6 @@ export default function BooksScreen({ navigation }: Props) {
                   </View>
                 </View>
 
-                {/* ISBN */}
                 <View style={s.modalInputWrapper}>
                   <Text style={s.modalInputLabel}>ISBN *</Text>
                   <View style={s.customInputContainer}>
@@ -369,32 +489,20 @@ export default function BooksScreen({ navigation }: Props) {
                   </View>
                 </View>
 
-                {/* ── NEW: Availability Toggle Button ── */}
                 <View style={s.modalInputWrapper}>
                   <Text style={s.modalInputLabel}>Availability Status</Text>
                   <TouchableOpacity
-                    style={[
-                      s.toggleContainer,
-                      form.available ? s.toggleActive : s.toggleInactive
-                    ]}
+                    style={[s.toggleContainer, form.available ? s.toggleActive : s.toggleInactive]}
                     activeOpacity={0.8}
                     onPress={() => setForm({ ...form, available: !form.available })}
                   >
-                    <Feather 
-                      name={form.available ? "check-square" : "square"} 
-                      size={16} 
-                      color={form.available ? "#F4EFE0" : "#281711"} 
-                    />
-                    <Text style={[
-                      s.toggleText,
-                      { color: form.available ? "#F4EFE0" : "#281711" }
-                    ]}>
+                    <Feather name={form.available ? "check-square" : "square"} size={16} color={form.available ? "#F4EFE0" : "#281711"} />
+                    <Text style={[s.toggleText, { color: form.available ? "#F4EFE0" : "#281711" }]}>
                       {form.available ? "Marked as Available" : "Marked as On Loan / Unavailable"}
                     </Text>
                   </TouchableOpacity>
                 </View>
 
-                {/* Publication year */}
                 <View style={s.modalInputWrapper}>
                   <Text style={s.modalInputLabel}>Publication Year</Text>
                   <View style={s.customInputContainer}>
@@ -409,7 +517,6 @@ export default function BooksScreen({ navigation }: Props) {
                   </View>
                 </View>
 
-                {/* Author — searchable list */}
                 <View style={s.modalInputWrapper}>
                   <Text style={s.modalInputLabel}>Author ID</Text>
                   <View style={s.customInputContainer}>
@@ -425,11 +532,7 @@ export default function BooksScreen({ navigation }: Props) {
                   {authors.length > 0 && (
                     <View style={s.refList}>
                       {authors.slice(0, 5).map((a) => (
-                        <TouchableOpacity
-                          key={a.id}
-                          style={s.refItem}
-                          onPress={() => setForm({ ...form, author: String(a.id) })}
-                        >
+                        <TouchableOpacity key={a.id} style={s.refItem} onPress={() => setForm({ ...form, author: String(a.id) })}>
                           <Text style={s.refTxt}>{a.id} — {a.name}</Text>
                         </TouchableOpacity>
                       ))}
@@ -437,7 +540,6 @@ export default function BooksScreen({ navigation }: Props) {
                   )}
                 </View>
 
-                {/* Category */}
                 <View style={s.modalInputWrapper}>
                   <Text style={s.modalInputLabel}>Category ID</Text>
                   <View style={s.customInputContainer}>
@@ -453,11 +555,7 @@ export default function BooksScreen({ navigation }: Props) {
                   {categories.length > 0 && (
                     <View style={s.refList}>
                       {categories.slice(0, 5).map((c) => (
-                        <TouchableOpacity
-                          key={c.id}
-                          style={s.refItem}
-                          onPress={() => setForm({ ...form, category: String(c.id) })}
-                        >
+                        <TouchableOpacity key={c.id} style={s.refItem} onPress={() => setForm({ ...form, category: String(c.id) })}>
                           <Text style={s.refTxt}>{c.id} — {c.name}</Text>
                         </TouchableOpacity>
                       ))}
@@ -465,7 +563,6 @@ export default function BooksScreen({ navigation }: Props) {
                   )}
                 </View>
 
-                {/* Department */}
                 <View style={s.modalInputWrapper}>
                   <Text style={s.modalInputLabel}>Department ID</Text>
                   <View style={s.customInputContainer}>
@@ -481,11 +578,7 @@ export default function BooksScreen({ navigation }: Props) {
                   {departments.length > 0 && (
                     <View style={s.refList}>
                       {departments.slice(0, 5).map((d) => (
-                        <TouchableOpacity
-                          key={d.id}
-                          style={s.refItem}
-                          onPress={() => setForm({ ...form, department: String(d.id) })}
-                        >
+                        <TouchableOpacity key={d.id} style={s.refItem} onPress={() => setForm({ ...form, department: String(d.id) })}>
                           <Text style={s.refTxt}>{d.id} — {d.name}</Text>
                         </TouchableOpacity>
                       ))}
@@ -493,7 +586,6 @@ export default function BooksScreen({ navigation }: Props) {
                   )}
                 </View>
 
-                {/* Description */}
                 <View style={s.modalInputWrapper}>
                   <Text style={s.modalInputLabel}>Description</Text>
                   <View style={s.customInputContainer}>
@@ -518,7 +610,7 @@ export default function BooksScreen({ navigation }: Props) {
                 <Btn
                   label={editingItem ? 'UPDATE' : 'SAVE RECORD'}
                   onPress={handleSave}
-                  loading={saving}
+                  loading={saving || uploadingImage}
                 />
               </View>
             </View>
@@ -529,12 +621,10 @@ export default function BooksScreen({ navigation }: Props) {
   );
 }
 
-// ── Stylesheet — mirrors CatalogScreens exactly ────────────────
 const s = StyleSheet.create({
   root:  { flex: 1, backgroundColor: '#ECE7D1' },
   inner: { paddingBottom: 60 },
 
-  // Header
   headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -544,259 +634,66 @@ const s = StyleSheet.create({
     borderColor: '#E8E4D9',
     paddingBottom: 16,
   },
-  headerTitle: {
-    color: '#281711',
-    fontSize: 15,
-    fontWeight: '700',
-    fontFamily: Fonts.baskervilleBold,
-  },
-  addButton: {
-    backgroundColor: '#281711',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  addButtonText: {
-    fontFamily: Fonts.sans,
-    color: '#F4EFE0',
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
+  headerTitle: { color: '#281711', fontSize: 15, fontWeight: '700', fontFamily: Fonts.baskervilleBold },
+  addButton: { backgroundColor: '#281711', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 0, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  addButtonText: { fontFamily: Fonts.sans, color: '#F4EFE0', fontSize: 12, fontWeight: '600', letterSpacing: 0.5 },
 
-  // Search + filter toolbar
-  toolbar: {
-    marginBottom: 20,
-    gap: 10,
-  },
-  searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#DCD4C4',
-    borderRadius: 0,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 13,
-    color: '#281711',
-    fontFamily: Fonts.sans,
-  },
-  filterRow:      { flexDirection: 'row', gap: 8 },
-  filterTab:      { paddingHorizontal: 14, paddingVertical: 6, borderWidth: 1, borderColor: '#DCD4C4', backgroundColor: '#FFFFFF' },
-  filterTabActive:{ backgroundColor: '#281711', borderColor: '#281711' },
-  filterTxt:      { fontSize: 11, fontWeight: '600', color: '#706251', fontFamily: Fonts.sans },
-  filterTxtActive:{ color: '#F4EFE0' },
+  toolbar: { marginBottom: 20, gap: 10 },
+  searchWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DCD4C4', borderRadius: 0, paddingHorizontal: 12, paddingVertical: 8 },
+  searchInput: { flex: 1, fontSize: 13, color: '#281711', fontFamily: Fonts.sans },
+  filterRow: { flexDirection: 'row', gap: 8 },
+  filterTab: { paddingHorizontal: 14, paddingVertical: 6, borderWidth: 1, borderColor: '#DCD4C4', backgroundColor: '#FFFFFF' },
+  filterTabActive: { backgroundColor: '#281711', borderColor: '#281711' },
+  filterTxt: { fontSize: 11, fontWeight: '600', color: '#706251', fontFamily: Fonts.sans },
+  filterTxtActive: { color: '#F4EFE0' },
 
-  // Grid
-  gridContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-    width: '100%',
-  },
-  customCard: {
-    backgroundColor: '#FFFDF1',
-    borderWidth: 1,
-    borderColor: '#412D15',
-    borderRadius: 0,
-    minWidth: 260,
-  },
-  cardContent: {
-    flex: 1,
-    padding: 18,
-    justifyContent: 'space-between',
-  },
-  cardInfo:  { marginBottom: 14 },
-
-  // Availability pill
-  availPill: {
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    marginBottom: 10,
-  },
+  gridContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, width: '100%' },
+  customCard: { backgroundColor: '#FFFDF1', borderWidth: 1, borderColor: '#412D15', borderRadius: 0, minWidth: 260 },
+  cardContent: { flex: 1, padding: 18, justifyContent: 'space-between' },
+  coverSection: { flexDirection: 'row', gap: 12, marginBottom: 12 },
+  coverThumb: { width: 60, height: 85, resizeMode: 'cover', borderWidth: 1, borderColor: '#E8DCC8' },
+  coverPlaceholder: { width: 60, height: 85, backgroundColor: '#F8F4EC', borderWidth: 1, borderColor: '#E8DCC8', justifyContent: 'center', alignItems: 'center' },
+  coverInfo: { flex: 1 },
+  cardInfo: { marginBottom: 14 },
+  availPill: { alignSelf: 'flex-start', borderWidth: 1, paddingHorizontal: 8, paddingVertical: 3, marginBottom: 10 },
   availTxt: { fontSize: 10, fontWeight: '700', letterSpacing: 0.4 },
-
-  itemTitle: {
-    color: '#281711',
-    fontFamily: Fonts.baskervilleBold,
-    fontSize: 16,
-    lineHeight: 22,
-    marginBottom: 8,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginTop: 3,
-  },
-  itemMeta: {
-    color: '#4A3E3D',
-    fontFamily: Fonts.sans,
-    fontSize: 12,
-    lineHeight: 17,
-    flex: 1,
-  },
-
-  // Card actions — matches CatalogScreens exactly
-  cardActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 8,
-    borderTopWidth: 1,
-    borderColor: '#F3F1EC',
-    paddingTop: 12,
-  },
-  actionButton: {
-    width: 32,
-    height: 32,
-    backgroundColor: '#F4F1EA',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 0,
-  },
+  itemTitle: { color: '#281711', fontFamily: Fonts.baskervilleBold, fontSize: 16, lineHeight: 22, marginBottom: 8 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
+  itemMeta: { color: '#4A3E3D', fontFamily: Fonts.sans, fontSize: 12, lineHeight: 17, flex: 1 },
+  cardActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, borderTopWidth: 1, borderColor: '#F3F1EC', paddingTop: 12 },
+  actionButton: { width: 32, height: 32, backgroundColor: '#F4F1EA', justifyContent: 'center', alignItems: 'center', borderRadius: 0 },
   deleteActionButton: { backgroundColor: '#FCE8E6' },
 
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(40, 23, 17, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
-  },
-  sheet: {
-    backgroundColor: '#F5F1E6',
-    borderWidth: 1,
-    borderColor: '#DCD4C4',
-    borderRadius: 0,
-    padding: 24,
-    width: '100%',
-    maxWidth: 480,
-    maxHeight: '90%',
-  },
-  sheetHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  sheetTitle: {
-    color: '#281711',
-    fontFamily: Fonts.baskervilleBold,
-    fontSize: 14,
-    letterSpacing: 1.5,
-  },
-  sheetDivider: {
-    height: 1,
-    backgroundColor: '#DCD4C4',
-    marginTop: 12,
-    marginBottom: 20,
-  },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(40, 23, 17, 0.5)', justifyContent: 'center', alignItems: 'center', padding: 16 },
+  sheet: { backgroundColor: '#F5F1E6', borderWidth: 1, borderColor: '#DCD4C4', borderRadius: 0, padding: 24, width: '100%', maxWidth: 480, maxHeight: '90%' },
+  sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  sheetTitle: { color: '#281711', fontFamily: Fonts.baskervilleBold, fontSize: 14, letterSpacing: 1.5 },
+  sheetDivider: { height: 1, backgroundColor: '#DCD4C4', marginTop: 12, marginBottom: 20 },
   modalScroll: { marginBottom: 12 },
 
   modalInputWrapper: { marginBottom: 16 },
-  modalInputLabel: {
-    fontFamily: Fonts.sans,
-    fontSize: 12,
-    color: '#3C2F2F',
-    marginBottom: 6,
-    fontWeight: '600',
-  },
-  customInputContainer: {
-    borderWidth: 1,
-    borderColor: '#DCD4C4',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 0,
-    minHeight: 40,
-    paddingHorizontal: 4,
-    justifyContent: 'center',
-  },
-  customInnerInput: {
-    fontFamily: Fonts.sans,
-    fontSize: 14,
-    color: '#281711',
-    paddingLeft: 8,
-    backgroundColor: 'transparent',
-    borderWidth: 0,
-    height: 40,
-  },
-  customInnerInputMultiline: {
-    height: 80,
-    paddingTop: 10,
-    textAlignVertical: 'top',
-  },
+  modalInputLabel: { fontFamily: Fonts.sans, fontSize: 12, color: '#3C2F2F', marginBottom: 6, fontWeight: '600' },
+  customInputContainer: { borderWidth: 1, borderColor: '#DCD4C4', backgroundColor: '#FFFFFF', borderRadius: 0, minHeight: 40, paddingHorizontal: 4, justifyContent: 'center' },
+  customInnerInput: { fontFamily: Fonts.sans, fontSize: 14, color: '#281711', paddingLeft: 8, backgroundColor: 'transparent', borderWidth: 0, height: 40 },
+  customInnerInputMultiline: { height: 80, paddingTop: 10, textAlignVertical: 'top' },
 
-  // ── Added Custom Styles for Toggle Component ──
-  toggleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderWidth: 1,
-    height: 42,
-    paddingHorizontal: 12,
-    borderRadius: 0,
-  },
-  toggleActive: {
-    backgroundColor: '#281711',
-    borderColor: '#281711',
-  },
-  toggleInactive: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#DCD4C4',
-  },
-  toggleText: {
-    fontFamily: Fonts.sans,
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  toggleContainer: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, height: 42, paddingHorizontal: 12, borderRadius: 0 },
+  toggleActive: { backgroundColor: '#281711', borderColor: '#281711' },
+  toggleInactive: { backgroundColor: '#FFFFFF', borderColor: '#DCD4C4' },
+  toggleText: { fontFamily: Fonts.sans, fontSize: 13, fontWeight: '600' },
 
-  // Quick-pick reference list under ID fields
-  refList: {
-    marginTop: 6,
-    borderWidth: 1,
-    borderColor: '#DCD4C4',
-    backgroundColor: '#FFFDF6',
-  },
-  refItem: {
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EAE7DF',
-  },
-  refTxt: {
-    fontFamily: Fonts.sans,
-    fontSize: 12,
-    color: '#4A3E3D',
-  },
+  refList: { marginTop: 6, borderWidth: 1, borderColor: '#DCD4C4', backgroundColor: '#FFFDF6' },
+  refItem: { paddingHorizontal: 10, paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: '#EAE7DF' },
+  refTxt: { fontFamily: Fonts.sans, fontSize: 12, color: '#4A3E3D' },
 
-  modalBtns: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 12,
-  },
-  cancelBtnTouch: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#281711',
-    borderRadius: 0,
-    height: 42,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-  },
-  cancelBtnText: {
-    fontFamily: Fonts.sans,
-    color: '#281711',
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  modalBtns: { flexDirection: 'row', gap: 12, marginTop: 12 },
+  cancelBtnTouch: { flex: 1, borderWidth: 1, borderColor: '#281711', borderRadius: 0, height: 42, justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' },
+  cancelBtnText: { fontFamily: Fonts.sans, color: '#281711', fontSize: 12, fontWeight: '600' },
+
+  imagePickerBtn: { width: '100%', minHeight: 120, borderWidth: 1, borderColor: '#DCD4C4', backgroundColor: '#FFFFFF', borderRadius: 0, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  imagePreview: { width: '100%', height: 150, resizeMode: 'cover' },
+  imagePlaceholder: { padding: 24, alignItems: 'center', gap: 8 },
+  imagePlaceholderText: { fontFamily: Fonts.sans, fontSize: 12, color: '#A1927F' },
+  removeImageBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, alignSelf: 'flex-end' },
+  removeImageText: { fontFamily: Fonts.sans, fontSize: 11, color: '#C53030' },
 });

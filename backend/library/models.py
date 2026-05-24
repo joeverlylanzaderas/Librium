@@ -82,18 +82,18 @@ class Semester(models.Model):
 class Book(models.Model):
     title            = models.CharField(max_length=200)
     isbn             = models.CharField(max_length=20, unique=True)
-    publication_year = models.IntegerField(
-        validators=[
-            MinValueValidator(1000),
-            MaxValueValidator(date.today().year),
-        ]
-    )
     author      = models.ForeignKey(Author,     on_delete=models.CASCADE)
     category    = models.ForeignKey(Category,   on_delete=models.SET_NULL, null=True, blank=True)
     department  = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True)
     available   = models.BooleanField(default=True)
     cover_image = models.ImageField(upload_to='book_covers/', null=True, blank=True)
     description = models.TextField(blank=True, null=True)
+    publication_year = models.IntegerField(
+        validators=[
+            MinValueValidator(1000),
+            MaxValueValidator(date.today().year),
+        ]
+    )
 
     def __str__(self):
         return self.title
