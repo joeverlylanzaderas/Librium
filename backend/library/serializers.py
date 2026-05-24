@@ -63,7 +63,7 @@ class BookSerializer(serializers.ModelSerializer):
     author_name     = serializers.CharField(source='author.name',     read_only=True)
     category_name   = serializers.CharField(source='category.name',   read_only=True, default=None)
     department_name = serializers.CharField(source='department.name', read_only=True, default=None)
-    
+
     class Meta:
         model  = Book
         fields = [
@@ -99,7 +99,6 @@ class BorrowRequestSerializer(serializers.ModelSerializer):
         source='processed_by.full_name', read_only=True, default=None
     )
     status_display = serializers.CharField(source='get_status_display',     read_only=True)
-
     loan_id        = serializers.IntegerField(source='loan.id', read_only=True, default=None)
 
     class Meta:
@@ -128,6 +127,8 @@ class BorrowRequestSerializer(serializers.ModelSerializer):
 
 class BorrowRequestCreateSerializer(serializers.ModelSerializer):
     """Used by members to create a new borrow request."""
+    # read_only: the view passes context={'request': request} and we inject
+    # member in validate(), so the client never needs to send it
     member = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
@@ -138,11 +139,11 @@ class BorrowRequestCreateSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if not request or not request.user:
             raise serializers.ValidationError("Authentication required.")
-        
+
         book   = attrs['book']
         member = request.user
 
-        # block if book is already on loan or reserved for someone
+        # block if book is already on loan
         if not book.available:
             raise serializers.ValidationError(
                 {'book': 'This book is currently unavailable. You can reserve it instead.'}
@@ -159,11 +160,13 @@ class BorrowRequestCreateSerializer(serializers.ModelSerializer):
                 {'book': 'You already have an active borrow request for this book.'}
             )
 
-        # 🎯 FIX: Inject member into validated attributes
+        # inject member so serializer.save() works without extra kwargs
         attrs['member'] = member
         return attrs
 
+
 class BorrowRequestActionSerializer(serializers.Serializer):
+    """Used by staff to approve or reject a borrow request (optional notes only)."""
     notes = serializers.CharField(required=False, allow_blank=True)
 
 
@@ -220,7 +223,10 @@ class LoanCreateSerializer(serializers.ModelSerializer):
     """Used by staff when issuing a walk-in loan directly (no borrow request)."""
     class Meta:
         model  = Loan
-        fields = ['member', 'book']
+        fields = ['member', 'book', 'loan_date']
+        extra_kwargs = {
+            'loan_date': {'required': False}   # defaults to date.today in the model
+        }
 
     def validate_book(self, value):
         if not value.available:
@@ -284,7 +290,7 @@ class ReservationSerializer(serializers.ModelSerializer):
 
 
 class ReservationCreateSerializer(serializers.ModelSerializer):
-    # 🎯 FIX: Marked as read_only so React Native doesn't have to send it
+    # read_only: the view passes context={'request': request} and create() injects member
     member = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
@@ -292,11 +298,9 @@ class ReservationCreateSerializer(serializers.ModelSerializer):
         fields = ['member', 'book']
 
     def create(self, validated_data):
-        # 🎯 FIX: Inject member object right from request instance context
         request = self.context.get('request')
         if not request or not request.user:
             raise serializers.ValidationError("Authentication required.")
-        
         validated_data['member'] = request.user
         return super().create(validated_data)
 

@@ -126,24 +126,24 @@ class BorrowRequest(models.Model):
     )
     status          = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     request_date    = models.DateField(auto_now_add=True)
-    processed_date  = models.DateField(null=True, blank=True)  
-    processed_by    = models.ForeignKey(                         
+    processed_date  = models.DateField(null=True, blank=True)
+    processed_by    = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True, blank=True,
         related_name='processed_borrow_requests'
     )
-    loan            = models.OneToOneField(                      # set when approved → loan created
+    loan            = models.OneToOneField(        # set when approved → loan created
         'Loan',
         on_delete=models.SET_NULL,
         null=True, blank=True,
         related_name='borrow_request'
     )
-    notes           = models.TextField(blank=True, null=True)   # rejection reason or member note
+    notes           = models.TextField(blank=True, null=True)  # rejection reason or member note
 
     class Meta:
         ordering = ['-request_date']
-        
+
         constraints = [
             models.UniqueConstraint(
                 fields=['member', 'book'],
@@ -220,12 +220,14 @@ class Loan(models.Model):
     def _sync_book_availability(self, is_new: bool) -> None:
         if not self.book_id:
             return
-        if not is_new and not self.return_verified_date:
+        # FIX: only run if the loan row is actually persisted in the DB
+        if not self.pk:
             return
         book = Book.objects.get(pk=self.book_id)
-        book.available = bool(self.return_verified_date)
         if is_new:
             book.available = False
+        else:
+            book.available = bool(self.return_verified_date)
         book.save(update_fields=['available'])
 
     def _auto_assign_semester(self) -> None:
@@ -248,8 +250,10 @@ class Loan(models.Model):
             self.due_date = self.loan_date + timedelta(days=LOAN_PERIOD_DAYS)
             self._auto_assign_semester()
 
-        self._sync_book_availability(is_new)
+        # FIX: super().save() FIRST so self.pk exists before _sync_book_availability runs.
+        # Previously the book could be marked unavailable even if the loan save failed.
         super().save(*args, **kwargs)
+        self._sync_book_availability(is_new)
 
     def delete(self, *args, **kwargs):
         if self.book_id and self.return_status != 'verified':

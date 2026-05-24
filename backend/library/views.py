@@ -10,6 +10,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from itertools import chain
 import operator
+from django.db import transaction
 
 from .models import (
     Category, Author, Book, Department,
@@ -259,9 +260,14 @@ class BorrowRequestListCreateAPIView(generics.ListCreateAPIView):
                 'Borrow requests are for members only.'
             )
 
-        serializer = BorrowRequestCreateSerializer(data=request.data)
+        # FIX: pass context so serializer can read request.user
+        serializer = BorrowRequestCreateSerializer(
+            data=request.data,
+            context={'request': request}
+        )
         serializer.is_valid(raise_exception=True)
-        borrow_request = serializer.save(member=request.user)
+        # FIX: do NOT pass member= here; serializer.validate() already injected it
+        borrow_request = serializer.save()
 
         return Response(
             BorrowRequestSerializer(borrow_request).data,
@@ -318,6 +324,7 @@ class BorrowRequestApproveAPIView(APIView):
             pk=pk
         )
 
+        # FIX: validate status and availability BEFORE creating the loan
         if borrow_request.status != 'pending':
             return Response(
                 {'error': f'Cannot approve a request with status "{borrow_request.status}".'},
@@ -333,19 +340,21 @@ class BorrowRequestApproveAPIView(APIView):
         serializer = BorrowRequestActionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        loan = Loan.objects.create(
-            member=borrow_request.member,
-            book=borrow_request.book,
-        )
+        # FIX: single atomic block wrapping both the loan creation and request update
+        with transaction.atomic():
+            loan = Loan.objects.create(
+                member=borrow_request.member,
+                book=borrow_request.book,
+            )
 
-        today = timezone.now().date()
-        borrow_request.status         = 'approved'
-        borrow_request.processed_date = today
-        borrow_request.processed_by   = request.user
-        borrow_request.loan           = loan
-        if serializer.validated_data.get('notes'):
-            borrow_request.notes = serializer.validated_data['notes']
-        borrow_request.save()
+            today = timezone.now().date()
+            borrow_request.status         = 'approved'
+            borrow_request.processed_date = today
+            borrow_request.processed_by   = request.user
+            borrow_request.loan           = loan
+            if serializer.validated_data.get('notes'):
+                borrow_request.notes = serializer.validated_data['notes']
+            borrow_request.save()
 
         return Response(
             BorrowRequestSerializer(borrow_request).data,
@@ -369,12 +378,10 @@ class BorrowRequestRejectAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        serializer = BorrowRequestCreateSerializer(
-            data=request.data,
-            context={'request': request}   
-        )
+        # FIX: use BorrowRequestActionSerializer (only needs optional notes),
+        # NOT BorrowRequestCreateSerializer which would create a new request
+        serializer = BorrowRequestActionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        borrow_request = serializer.save() 
 
         today = timezone.now().date()
         borrow_request.status         = 'rejected'
@@ -415,9 +422,11 @@ class LoanListCreateAPIView(generics.ListCreateAPIView):
                 'Only staff can issue walk-in loans directly.'
             )
 
+        # FIX: removed the stray transaction block that referenced undefined borrow_request
         serializer = LoanCreateSerializer(data=request.data)
         if serializer.is_valid():
-            loan = serializer.save()
+            with transaction.atomic():
+                loan = serializer.save()
             return Response(LoanSerializer(loan).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -567,9 +576,10 @@ class ReservationListCreateAPIView(generics.ListCreateAPIView):
         return base.all()
 
     def create(self, request, *args, **kwargs):
+        # FIX: pass context so ReservationCreateSerializer.create() can read request.user
         serializer = ReservationCreateSerializer(
             data=request.data,
-            context={'request': request}  
+            context={'request': request}
         )
         serializer.is_valid(raise_exception=True)
 
@@ -582,7 +592,7 @@ class ReservationListCreateAPIView(generics.ListCreateAPIView):
             )
 
         already_active = Reservation.objects.filter(
-            member=serializer.validated_data['member'],
+            member=request.user,
             book=book,
             status__in=['waiting', 'ready']
         ).exists()
@@ -599,7 +609,7 @@ class ReservationListCreateAPIView(generics.ListCreateAPIView):
         queue_position = active_count + 1
 
         reservation = Reservation.objects.create(
-            member=serializer.validated_data['member'],
+            member=request.user,
             book=book,
             queue_position=queue_position
         )
@@ -771,5 +781,5 @@ def dashboard_stats(request):
     )[:8]
 
     stats['recent_activity'] = activities
-    
+
     return Response(stats)
