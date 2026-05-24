@@ -10,6 +10,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from itertools import chain
 import requests
+import os
 import operator
 from django.db import transaction
 from rest_framework.generics import ListCreateAPIView, ListAPIView  
