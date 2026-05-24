@@ -1,0 +1,29 @@
+Title: Library Hours
+Content: The library is open Monday to Friday, 8am-8pm. Saturday 9am-5pm. Closed Sunday.
+
+Title: Borrowing Limits
+Content: Students: 5 books, 14 days. Faculty: 10 books, 30 days. Staff: 5 books, 21 days.
+
+Title: Overdue Fines
+Content: PHP 10 per book per day. Maximum PHP 500 per book.
+
+Title: Lost Books Policy
+Content: Replace with new copy or pay market price + PHP 200 processing fee.
+
+Title: Study Room Booking
+Content: Book for 2 hours at circulation desk. Maximum 4 students per room.
+
+Title: Printing Services
+Content: Black & white: PHP 5/page. Color: PHP 15/page. Double-sided: 50% discount.
+
+Title: WiFi Access
+Content: Password: librium2024. Available in all areas of the library.
+
+Title: Thesis Section
+Content: Theses are for room use only. Cannot be borrowed. Scan for PHP 3/page.
+
+Title: Reserve Collection
+Content: High-demand textbooks available for 2-hour loan only. Late return: PHP 20/hour.
+
+Title: Interlibrary Loan
+Content: Request books from partner libraries. Processing time: 3-5 days.

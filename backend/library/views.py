@@ -876,7 +876,7 @@ Please provide a helpful, concise answer based on the library knowledge above.""
         try:
             # Call Ollama API
             response = requests.post(
-                "http://localhost:11434/api/generate",
+                "http://127.0.0.1:11434/api/generate",
                 json={
                     "model": "qwen2.5:0.5b",
                     "prompt": prompt,
