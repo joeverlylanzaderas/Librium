@@ -181,6 +181,9 @@ DJOSER = {
         'current_user': 'user.serializers.UserSerializer',
     },
     
+    'EMAIL': {
+        'activation': 'user.emails.CustomActivationEmail',
+    }
 }
 
 # ─────────────────────────────────────────────
