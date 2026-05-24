@@ -9,12 +9,14 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from itertools import chain
+import requests
 import operator
 from django.db import transaction
+from rest_framework.generics import ListCreateAPIView, ListAPIView  
 
 from .models import (
     Category, Author, Book, Department,
-    BorrowRequest, Loan, Reservation, Fine, Semester,
+    BorrowRequest, Loan, Reservation, Fine, Semester, KnowledgeBase, ChatMessage,
     LOAN_PERIOD_DAYS, FINE_RATE_PER_DAY,
 )
 from .serializers import (
@@ -22,7 +24,7 @@ from .serializers import (
     BorrowRequestSerializer, BorrowRequestCreateSerializer, BorrowRequestActionSerializer,
     LoanSerializer, LoanCreateSerializer, LoanReturnRequestSerializer,
     LoanReturnVerifySerializer, ReservationSerializer, ReservationCreateSerializer,
-    FineSerializer, SemesterSerializer, 
+    FineSerializer, SemesterSerializer, KnowledgeBaseSerializer, ChatMessageSerializer,
 )
 from library.permissions import IsAdminOrLibrarian
 from django.contrib.auth import get_user_model
@@ -827,3 +829,90 @@ def dashboard_stats(request):
     stats['recent_activity'] = activities
 
     return Response(stats)
+
+
+class KnowledgeBaseView(ListCreateAPIView):
+    queryset = KnowledgeBase.objects.all()
+    serializer_class = KnowledgeBaseSerializer
+    permission_classes = [IsAuthenticated, IsAdminOrLibrarian]  # Admin only
+
+
+class ChatbotAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user_message = request.data.get("message", "").strip()
+        
+        if not user_message:
+            return Response(
+                {"error": "Message is required"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Save user message
+        user_chat = ChatMessage.objects.create(
+            role='user',
+            message=user_message
+        )
+
+        # Get knowledge base content
+        knowledge_items = KnowledgeBase.objects.all()
+        context = ""
+        
+        for item in knowledge_items:
+            if item.text_content:
+                context += item.text_content + "\n\n"
+
+        # Build prompt for Ollama
+        prompt = f"""You are Librium's library assistant. Help users with library-related questions about books, borrowing, reservations, fines, and library policies.
+
+Library Knowledge:
+{context if context else "General library assistant for Librium University Library."}
+
+User Question: {user_message}
+
+Please provide a helpful, concise answer based on the library knowledge above."""
+
+        try:
+            # Call Ollama API
+            response = requests.post(
+                "http://localhost:11434/api/generate",
+                json={
+                    "model": "qwen2.5:0.5b",
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "temperature": 0.7,
+                        "max_tokens": 500
+                    }
+                },
+                timeout=60
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                ai_response = data.get("response", "I'm sorry, I couldn't process that request.")
+            else:
+                ai_response = "I'm having trouble connecting. Please try again later."
+                
+        except requests.exceptions.ConnectionError:
+            ai_response = "The AI service is currently unavailable. Please try again later."
+        except Exception as e:
+            ai_response = f"An error occurred. Please try again."
+
+        # Save AI response
+        ai_chat = ChatMessage.objects.create(
+            role='assistant',
+            message=ai_response
+        )
+
+        return Response({
+            "user": ChatMessageSerializer(user_chat).data,
+            "assistant": ChatMessageSerializer(ai_chat).data
+        }, status=status.HTTP_201_CREATED)
+
+    def get(self, request):
+        # Get chat history for the user (last 50 messages)
+        messages = ChatMessage.objects.all().order_by('-created_at')[:50]
+        serializer = ChatMessageSerializer(messages, many=True)
+        return Response(serializer.data)

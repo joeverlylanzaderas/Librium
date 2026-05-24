@@ -1,7 +1,22 @@
 # library/serializers.py
 from rest_framework import serializers
-from .models import Category, Author, Book, Department, Loan, Reservation, Fine, Semester, BorrowRequest
+from .models import Category, Author, Book, ChatMessage, Department, KnowledgeBase, Loan, Reservation, Fine, Semester, BorrowRequest
 
+
+# ─────────────────────────────────────────────
+#  KNOWLEDGE BASE & CHAT
+# ─────────────────────────────────────────────
+
+class KnowledgeBaseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = KnowledgeBase
+        fields = '__all__'
+
+
+class ChatMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChatMessage
+        fields = '__all__'
 
 # ─────────────────────────────────────────────
 #  CATEGORY

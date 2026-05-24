@@ -58,4 +58,7 @@ urlpatterns = [
     path('fines/',                views.FineListAPIView.as_view(),     name='fine-list'),
     path('fines/<int:pk>/',       views.FineRetrieveAPIView.as_view(), name='fine-detail'),
     path('fines/<int:pk>/pay/',   views.FinePayAPIView.as_view(),      name='fine-pay'),
+    
+    path('chat/', views.ChatbotAPIView.as_view(), name='chatbot'),
+    path('knowledge/', views.KnowledgeBaseView.as_view(), name='knowledge-base'),
 ]
