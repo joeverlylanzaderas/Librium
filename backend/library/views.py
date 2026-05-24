@@ -481,7 +481,6 @@ class LoanReturnRequestAPIView(generics.GenericAPIView):
 # ─────────────────────────────────────────────
 #  LOAN — RETURN VERIFY  (librarian/admin-facing)
 # ─────────────────────────────────────────────
-
 class LoanReturnVerifyAPIView(generics.GenericAPIView):
     serializer_class   = LoanReturnVerifySerializer
     permission_classes = [IsAuthenticated, IsAdminOrLibrarian]
@@ -504,6 +503,7 @@ class LoanReturnVerifyAPIView(generics.GenericAPIView):
             loan.book.available = True
             loan.book.save(update_fields=['available'])
 
+            # Create fine if overdue
             if loan.is_overdue:
                 Fine.objects.get_or_create(
                     loan=loan,
