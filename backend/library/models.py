@@ -147,7 +147,7 @@ class BorrowRequest(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=['member', 'book'],
-                condition=models.Q(status__in=['pending', 'approved']),
+                condition=models.Q(status__in=['pending']),
                 name='unique_active_borrow_request_per_member_book'
             )
         ]

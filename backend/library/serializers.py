@@ -160,17 +160,19 @@ class BorrowRequestCreateSerializer(serializers.ModelSerializer):
                 {'book': 'This book is currently unavailable. You can reserve it instead.'}
             )
 
+        # ✅ Matches the model constraint perfectly
         already_active = BorrowRequest.objects.filter(
             member=member,
             book=book,
-            status__in=['pending'] 
+            status='pending'
         ).exists()
         
         if already_active:
             raise serializers.ValidationError(
                 {'book': 'You already have an active borrow request for this book.'}
             )
-        
+
+        # ✅ Optional: Blocks them if they have an ongoing unreturned LOAN record for this copy
         active_loan = Loan.objects.filter(
             member=member,
             book=book,
