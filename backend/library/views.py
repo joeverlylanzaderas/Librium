@@ -478,9 +478,9 @@ class LoanReturnRequestAPIView(generics.GenericAPIView):
         return Response(LoanSerializer(loan).data, status=status.HTTP_200_OK)
 
 
-# ─────────────────────────────────────────────
-#  LOAN — RETURN VERIFY  (librarian/admin-facing)
-# ─────────────────────────────────────────────
+# ──────────────────────────
+#  LOAN — RETURN VERIFY 
+# ──────────────────────────
 class LoanReturnVerifyAPIView(generics.GenericAPIView):
     serializer_class   = LoanReturnVerifySerializer
     permission_classes = [IsAuthenticated, IsAdminOrLibrarian]
@@ -578,7 +578,6 @@ class ReservationListCreateAPIView(generics.ListCreateAPIView):
         return base.all()
 
     def create(self, request, *args, **kwargs):
-        # FIX: pass context so ReservationCreateSerializer.create() can read request.user
         serializer = ReservationCreateSerializer(
             data=request.data,
             context={'request': request}
