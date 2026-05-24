@@ -86,7 +86,7 @@ class Book(models.Model):
     category    = models.ForeignKey(Category,   on_delete=models.SET_NULL, null=True, blank=True)
     department  = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True)
     available   = models.BooleanField(default=True)
-    cover_image = models.ImageField(upload_to='book_covers/', null=True, blank=True)
+    cover_image = models.URLField(max_length=500, null=True, blank=True)
     description = models.TextField(blank=True, null=True)
     publication_year = models.IntegerField(
         validators=[

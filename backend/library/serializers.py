@@ -63,9 +63,7 @@ class BookSerializer(serializers.ModelSerializer):
     author_name     = serializers.CharField(source='author.name',     read_only=True)
     category_name   = serializers.CharField(source='category.name',   read_only=True, default=None)
     department_name = serializers.CharField(source='department.name', read_only=True, default=None)
-    cover_image_url = serializers.SerializerMethodField()
-    cover_image     = serializers.ImageField(required=False, allow_null=True)
-
+    
     class Meta:
         model  = Book
         fields = [
@@ -74,7 +72,7 @@ class BookSerializer(serializers.ModelSerializer):
             'category', 'category_name',
             'department', 'department_name',
             'available',
-            'cover_image', 'cover_image_url',
+            'cover_image',
             'description',
         ]
 
