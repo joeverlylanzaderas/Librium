@@ -6,6 +6,7 @@ import { C } from '../components/UI';
 
 // ── Auth ──────────────────────────────────────────────────────
 import LoginScreen from '../screens/auth/LoginScreen';
+import RegisterScreen from '../screens/auth/RegisterScreen'; // Imported registration screen
 
 // ── Admin screens ─────────────────────────────────────────────
 import AdminDashboardScreen      from '../screens/admin/DashboardScreen';
@@ -76,11 +77,12 @@ export type BorrowerStackParamList = {
 };
 
 export type AuthStackParamList = {
-  Login: undefined;
+  Login:    { uid?: string; token?: string; activated?: boolean } | undefined;
+  Register: undefined;
 };
 
 const RootStack      = createNativeStackNavigator();
-const AuthNav        = createNativeStackNavigator();
+const AuthNav        = createNativeStackNavigator<AuthStackParamList>(); 
 const AdminNav       = createNativeStackNavigator();
 const LibrarianNav   = createNativeStackNavigator();
 const BorrowerNav    = createNativeStackNavigator();
@@ -96,9 +98,10 @@ const screenOpts = {
 // ── Auth stack ────────────────────────────────────────────────
 function AuthStack() {
   return (
-    // FIX: id prop required by React Navigation v7
+    // id prop required by React Navigation v7
     <AuthNav.Navigator id="AuthStack" screenOptions={{ headerShown: false }}>
       <AuthNav.Screen name="Login" component={LoginScreen} />
+      <AuthNav.Screen name="Register" component={RegisterScreen} />
     </AuthNav.Navigator>
   );
 }
@@ -109,11 +112,11 @@ function AdminStack() {
     <AdminNav.Navigator id="AdminStack" screenOptions={screenOpts}>
       <AdminNav.Screen name="Dashboard"      component={AdminDashboardScreen}       options={{ headerShown: false }} />
       <AdminNav.Screen name="Books"          component={AdminBooksScreen}           options={{ headerShown: false }} />
-      <AdminNav.Screen name="BorrowRequests" component={AdminBorrowRequestsScreen}  options={{ title: 'Borrow Requests' }} />
-      <AdminNav.Screen name="Loans"          component={AdminLoansScreen}           options={{ title: 'Loans' }} />
-      <AdminNav.Screen name="Members"        component={AdminMembersScreen}         options={{ headerShown: false  }} />
-      <AdminNav.Screen name="Fines"          component={AdminFinesScreen}           options={{ title: 'Fines' }} />
-      <AdminNav.Screen name="Reservations"   component={AdminReservationsScreen}    options={{ title: 'Reservations' }} />
+      <AdminNav.Screen name="BorrowRequests" component={AdminBorrowRequestsScreen}  options={{ headerShown: false }} />
+      <AdminNav.Screen name="Loans"          component={AdminLoansScreen}           options={{ headerShown: false }} />
+      <AdminNav.Screen name="Members"        component={AdminMembersScreen}         options={{ headerShown: false }} />
+      <AdminNav.Screen name="Fines"          component={AdminFinesScreen}           options={{ headerShown: false }} />
+      <AdminNav.Screen name="Reservations"   component={AdminReservationsScreen}    options={{ headerShown: false }} />
       <AdminNav.Screen name="Profile"        component={AdminProfileScreen}         options={{ headerShown: false }} />
       <AdminNav.Screen name="Authors"        component={AuthorsScreen}              options={{ headerShown: false }} />
       <AdminNav.Screen name="Categories"     component={CategoriesScreen}           options={{ headerShown: false }} />

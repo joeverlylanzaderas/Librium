@@ -1,0 +1,16 @@
+LIBRIUM LIBRARY SYSTEM
+──────────────────────
+
+Activate Your Account
+
+Thank you for registering with Librium.
+
+Please click the link below to activate your account:
+
+{{ url }}
+
+This link expires in 24 hours.
+
+If you did not create an account, you can safely ignore this email.
+
+© Librium University Library

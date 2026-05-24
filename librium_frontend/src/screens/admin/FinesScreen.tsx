@@ -1,7 +1,26 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, RefreshControl, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, RefreshControl, Alert, Platform, useWindowDimensions, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { getFines, payFine } from '../../services/api';
-import { Card, Btn, Badge, Empty, Loading, SectionHeader, C } from '../../components/UI';
+import { Empty, Loading } from '../../components/UI';
+import SidebarLayout from '../../components/SidebarLayout';
+
+// ── Classic Library Palette ────────────────────────────────────
+const P = {
+  mahogany:     '#412D15',
+  espresso:     '#1F150C',
+  amber:        '#F69D39',
+  brass:        '#FFC85C',
+  parchment:    '#FBF5DD',
+  parchmentDark:'#EFE9CE',
+  pureWhite:    '#FFFFFF',
+  textMain:     '#2D1F10',
+  textMuted:    '#706251',
+  success:      '#3D5A45', 
+  danger:       '#8A2B2B', 
+};
+
+const SERIF_FONT = Platform.select({ ios: 'Georgia', android: 'serif' });
 
 type Fine = {
   id: number;
@@ -15,6 +34,7 @@ type Fine = {
 };
 
 export default function FinesScreen() {
+  const { width }                   = useWindowDimensions();
   const [fines, setFines]           = useState<Fine[]>([]);
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -30,13 +50,33 @@ export default function FinesScreen() {
   useEffect(() => { load(); }, []);
 
   const handlePay = (id: number, amount: string) => {
-    Alert.alert('Mark as Paid', `Mark ₱${amount} fine as paid?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Paid', onPress: async () => {
-        try { await payFine(id); load(); }
-        catch (e: any) { Alert.alert('Error', JSON.stringify(e.data)); }
-      }},
-    ]);
+    const title = 'Mark as Paid';
+    const msg = `Mark ₱${parseFloat(amount).toFixed(2)} fine as paid?`;
+
+    if (Platform.OS === 'web') {
+      if (window.confirm(`${title}\n\n${msg}`)) {
+        executePay(id);
+      }
+    } else {
+      Alert.alert(title, msg, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Paid', onPress: () => executePay(id) },
+      ]);
+    }
+  };
+
+  const executePay = async (id: number) => {
+    try {
+      await payFine(id);
+      load();
+    } catch (e: any) {
+      const errorMsg = e?.data ? JSON.stringify(e.data) : 'Could not update record.';
+      if (Platform.OS === 'web') {
+        window.alert(`Error: ${errorMsg}`);
+      } else {
+        Alert.alert('Error', errorMsg);
+      }
+    }
   };
 
   const unpaid = fines.filter(f => !f.paid);
@@ -44,53 +84,115 @@ export default function FinesScreen() {
 
   if (loading) return <Loading />;
 
+  const isDesktop = width > 768;
+  const contentStyle = width > 1200 ? { maxWidth: 1200, alignSelf: 'center' as const, width: '100%' as any } : {};
+
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: C.bg }}
-      contentContainerStyle={s.inner}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={C.primary} />}
-    >
-      <SectionHeader title={`Fines (${fines.length})`} />
-
-      {unpaid.length > 0 && <Text style={s.groupLabel}>UNPAID</Text>}
-      {unpaid.map((f) => (
-        <Card key={f.id}>
-          <View style={s.row}>
-            <View style={{ flex: 1 }}>
-              <Text style={s.amount}>₱{parseFloat(f.amount).toFixed(2)}</Text>
-              <Text style={s.meta}>Member: {f.member_name || f.member}</Text>
-              <Text style={s.meta}>Loan: #{f.loan}</Text>
-              {f.reason && <Text style={s.meta}>Reason: {f.reason}</Text>}
-            </View>
-            <Badge label="UNPAID" color={C.danger} />
+    <SidebarLayout>
+      <ScrollView
+        style={s.root}
+        contentContainerStyle={[s.inner, { paddingTop: isDesktop ? 24 : 16 }]}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => { setRefreshing(true); load(); }}
+            tintColor={P.danger}
+          />
+        }
+      >
+        <View style={contentStyle}>
+          <View style={s.mainTitleWrap}>
+            <Text style={s.mainDashboardTitle}>Accounts & Fines</Text>
+            <Text style={s.dateText}>Ledger Balances ({fines.length})</Text>
           </View>
-          <Btn label="Mark as Paid" variant="success" onPress={() => handlePay(f.id, f.amount)} style={{ marginTop: 8, paddingVertical: 7 }} />
-        </Card>
-      ))}
 
-      {paid.length > 0 && <Text style={s.groupLabel}>PAID</Text>}
-      {paid.map((f) => (
-        <Card key={f.id} style={{ opacity: 0.6 }}>
-          <View style={s.row}>
-            <View style={{ flex: 1 }}>
-              <Text style={s.amount}>₱{parseFloat(f.amount).toFixed(2)}</Text>
-              <Text style={s.meta}>Member: {f.member_name || f.member}</Text>
-              <Text style={s.meta}>Paid: {f.paid_at ? new Date(f.paid_at).toLocaleDateString() : '—'}</Text>
-            </View>
-            <Badge label="PAID" color={C.success} />
-          </View>
-        </Card>
-      ))}
+          {/* ── Unpaid Ledger Section ── */}
+          {unpaid.length > 0 && (
+            <>
+              <Text style={s.sectionLabel}>OUTSTANDING UNPAID BALANCES</Text>
+              <View style={s.panel}>
+                <View style={[s.panelHeader, { backgroundColor: P.danger }]}>
+                  <Ionicons name="alert-circle" size={14} color={P.brass} />
+                  <Text style={s.panelHeaderTxt}>Arrears Register</Text>
+                </View>
+                {unpaid.map((f, idx) => (
+                  <View key={f.id} style={[s.actRow, idx !== unpaid.length - 1 && s.actBorder]}>
+                    <View style={[s.actIcon, { backgroundColor: P.danger + '15' }]}>
+                      <Ionicons name="cash-outline" size={14} color={P.danger} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.amount}>₱{parseFloat(f.amount).toFixed(2)}</Text>
+                      <Text style={s.actMeta} numberOfLines={1}>
+                        Member: {f.member_name || f.member} · Loan Reference: #{f.loan}
+                      </Text>
+                      {f.reason && <Text style={[s.actMeta, { fontStyle: 'italic' }]} numberOfLines={1}>Reason: {f.reason}</Text>}
+                    </View>
+                    <TouchableOpacity style={s.actionBtn} activeOpacity={0.7} onPress={() => handlePay(f.id, f.amount)}>
+                      <Text style={s.actionBtnTxt}>Mark Paid</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            </>
+          )}
 
-      {fines.length === 0 && <Empty text="No fines on record." />}
-    </ScrollView>
+          {/* ── Paid Ledger Section ── */}
+          {paid.length > 0 && (
+            <>
+              <Text style={s.sectionLabel}>SETTLED ACCOUNTS</Text>
+              <View style={s.panel}>
+                <View style={[s.panelHeader, { backgroundColor: P.espresso }]}>
+                  <Ionicons name="checkmark-circle" size={14} color={P.brass} />
+                  <Text style={s.panelHeaderTxt}>Cleared Ledger Entries</Text>
+                </View>
+                {paid.map((f, idx) => (
+                  <View key={f.id} style={[s.actRow, idx !== paid.length - 1 && s.actBorder, { opacity: 0.75 }]}>
+                    <View style={[s.actIcon, { backgroundColor: P.success + '15' }]}>
+                      <Ionicons name="ribbon-outline" size={14} color={P.success} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[s.amount, { color: P.success }]}>₱{parseFloat(f.amount).toFixed(2)}</Text>
+                      <Text style={s.actMeta} numberOfLines={1}>
+                        Member: {f.member_name || f.member} · Reference: #{f.id}
+                      </Text>
+                    </View>
+                    <View style={s.statusBadge}>
+                      <Text style={s.statusText}>SETTLED: {f.paid_at ? new Date(f.paid_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) : '—'}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </>
+          )}
+
+          {fines.length === 0 && <Empty text="No fines on record." />}
+        </View>
+      </ScrollView>
+    </SidebarLayout>
   );
 }
 
 const s = StyleSheet.create({
-  inner:      { padding: 16, paddingBottom: 40 },
-  groupLabel: { color: C.muted, fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 6 },
-  row:        { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  amount:     { color: C.danger, fontWeight: '800', fontSize: 18 },
-  meta:       { color: C.sub, fontSize: 12, marginTop: 2 },
+  root:  { flex: 1, backgroundColor: '#FCFAEE' },
+  inner: { paddingBottom: 48 },
+
+  mainTitleWrap: { paddingHorizontal: 16, marginBottom: 16 },
+  dateText: { fontSize: 13, fontWeight: '600', color: P.textMuted, marginTop: 2 },
+  mainDashboardTitle: { fontSize: 28, fontWeight: '700', fontFamily: SERIF_FONT, color: P.espresso },
+
+  sectionLabel: { color: P.textMuted, fontSize: 11, fontWeight: '700', letterSpacing: 1.2, marginTop: 12, marginBottom: 8, marginHorizontal: 16 },
+  panel:          { marginHorizontal: 16, backgroundColor: P.pureWhite, borderRadius: 6, borderWidth: 1, borderColor: P.parchmentDark, overflow: 'hidden', marginBottom: 12 },
+  panelHeader:    { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10 },
+  panelHeaderTxt: { color: P.parchment, fontSize: 13, fontWeight: '600', fontFamily: SERIF_FONT },
+
+  actRow:    { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 14 },
+  actBorder: { borderBottomWidth: 1, borderBottomColor: P.brass },
+  actIcon:   { width: 32, height: 32, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
+  amount:    { color: P.danger, fontWeight: '800', fontSize: 16, fontFamily: SERIF_FONT },
+  actMeta:   { color: P.textMuted, fontSize: 12, marginTop: 2 },
+
+  actionBtn:    { backgroundColor: P.success, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 4 },
+  actionBtnTxt: { color: P.pureWhite, fontSize: 11, fontWeight: '700' },
+  statusBadge:  { backgroundColor: '#EAF2EC', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 4 },
+  statusText:   { fontSize: 10, fontWeight: '700', color: P.success, letterSpacing: 0.3 },
 });
