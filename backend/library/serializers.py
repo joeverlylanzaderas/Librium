@@ -141,9 +141,6 @@ class BorrowRequestSerializer(serializers.ModelSerializer):
 
 
 class BorrowRequestCreateSerializer(serializers.ModelSerializer):
-    """Used by members to create a new borrow request."""
-    # read_only: the view passes context={'request': request} and we inject
-    # member in validate(), so the client never needs to send it
     member = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
@@ -158,24 +155,32 @@ class BorrowRequestCreateSerializer(serializers.ModelSerializer):
         book   = attrs['book']
         member = request.user
 
-        # block if book is already on loan
         if not book.available:
             raise serializers.ValidationError(
                 {'book': 'This book is currently unavailable. You can reserve it instead.'}
             )
 
-        # block duplicate active requests
         already_active = BorrowRequest.objects.filter(
             member=member,
             book=book,
-            status__in=['pending', 'approved']
+            status__in=['pending'] 
         ).exists()
+        
         if already_active:
             raise serializers.ValidationError(
                 {'book': 'You already have an active borrow request for this book.'}
             )
+        
+        active_loan = Loan.objects.filter(
+            member=member,
+            book=book,
+        ).exclude(return_status='verified').exists()
 
-        # inject member so serializer.save() works without extra kwargs
+        if active_loan:
+            raise serializers.ValidationError(
+                {'book': 'You currently have an unreturned loan for this book.'}
+            )
+
         attrs['member'] = member
         return attrs
 
