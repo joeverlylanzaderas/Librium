@@ -357,6 +357,14 @@ class ChatMessage(models.Model):
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
     message = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    session_id = models.CharField(max_length=100, null=True, blank=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True, blank=True,
+        related_name='chat_messages'
+    )
 
     def __str__(self):
         return f"{self.role}: {self.message[:50]}"

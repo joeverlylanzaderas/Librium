@@ -11,6 +11,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from itertools import chain
 import requests
+import uuid
 import os
 import re
 import operator
@@ -841,10 +842,23 @@ class KnowledgeBaseView(ListCreateAPIView):
 
 
 class ChatbotAPIView(APIView):
-    permission_classes = [AllowAny] 
+    permission_classes = [AllowAny]
+
+    def get_session_id(self, request):
+        # Check if user is authenticated
+        if request.user.is_authenticated:
+            return f"user_{request.user.id}"
+        
+        # For guests, get or create a session ID from cookies
+        session_id = request.COOKIES.get('chat_session_id')
+        if not session_id:
+            session_id = str(uuid.uuid4())
+        
+        return f"guest_{session_id}"
 
     def post(self, request):
         user_message = request.data.get("message", "").strip()
+        session_id = self.get_session_id(request)
         
         if not user_message:
             return Response(
@@ -852,14 +866,12 @@ class ChatbotAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Save user message - use 'Guest' for non-authenticated users
-        user_name = "Guest"
-        if request.user.is_authenticated:
-            user_name = request.user.full_name or request.user.email
-        
+        # Save user message with session_id
         user_chat = ChatMessage.objects.create(
             role='user',
-            message=f"[{user_name}]: {user_message}" if not request.user.is_authenticated else user_message
+            message=user_message,
+            session_id=session_id,
+            user=request.user if request.user.is_authenticated else None
         )
 
         # Get knowledge base content
@@ -869,7 +881,7 @@ class ChatbotAPIView(APIView):
             if item.text_content:
                 context += f"- **{item.title}**: {item.text_content}\n\n"
 
-        system_prompt = """You are Librium's friendly library assistant. Help users with library-related questions about books, borrowing, reservations, fines, and library policies. Be helpful, concise, and conversational. Provide ONLY the final answer, no internal reasoning or tags."""
+        system_prompt = """You are Librium's friendly library assistant. Be helpful, concise, and conversational."""
 
         user_prompt = f"""Library Knowledge Base:
 {context if context else "No specific policies found."}
@@ -915,16 +927,35 @@ Answer directly and concisely:"""
 
         ai_chat = ChatMessage.objects.create(
             role='assistant',
-            message=ai_response
+            message=ai_response,
+            session_id=session_id,
+            user=request.user if request.user.is_authenticated else None
         )
 
-        return Response({
+        response_data = Response({
             "user": ChatMessageSerializer(user_chat).data,
             "assistant": ChatMessageSerializer(ai_chat).data
         }, status=status.HTTP_201_CREATED)
+        
+        # Set cookie for guest users
+        if not request.user.is_authenticated:
+            response_data.set_cookie(
+                key='chat_session_id',
+                value=session_id.replace('guest_', ''),
+                max_age=60*60*24*30,  # 30 days
+                httponly=False,
+                samesite='Lax'
+            )
+        
+        return response_data
 
     def get(self, request):
-        # For non-authenticated users, show only recent public messages
-        messages = ChatMessage.objects.all().order_by('-created_at')[:50]
+        session_id = self.get_session_id(request)
+        
+        # Only get messages for this specific session/user
+        messages = ChatMessage.objects.filter(
+            session_id=session_id
+        ).order_by('-created_at')[:50]
+        
         serializer = ChatMessageSerializer(messages, many=True)
         return Response(serializer.data)
