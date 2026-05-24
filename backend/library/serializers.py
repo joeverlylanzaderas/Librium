@@ -121,7 +121,7 @@ class BorrowRequestSerializer(serializers.ModelSerializer):
     def get_book_cover(self, obj):
         if not obj.book or not obj.book.cover_image:
             return None
-        url = obj.book.cover_image.url
+        url = str(obj.book.cover_image)
         return url.replace('/upload/', '/upload/f_auto,w_200/')
 
 
