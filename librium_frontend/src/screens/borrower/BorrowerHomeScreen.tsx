@@ -3,7 +3,7 @@ import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   TextInput, RefreshControl, Alert, ActivityIndicator, Modal, ScrollView, Image,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import {
   getBooks, getCategories, createBorrowRequest, createReservation,
   getLoans, getReservations, getBorrowRequests, getFines,
@@ -123,6 +123,12 @@ export default function BorrowerHomeScreen() {
   }, [loadStats, loadBooks]);
 
   useEffect(() => { load(); }, [load]);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
   const filtered = books.filter((b) => {
     const matchSearch = b.title.toLowerCase().includes(search.toLowerCase()) ||
