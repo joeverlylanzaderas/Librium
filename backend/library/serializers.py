@@ -80,7 +80,7 @@ class BookSerializer(serializers.ModelSerializer):
         if not obj.cover_image:
             return None
         request = self.context.get('request')
-        url = obj.cover_image.url
+        url = str(obj.cover_image)  
         url = url.replace('/upload/', '/upload/f_auto/')
         if request:
             return request.build_absolute_uri(url)
@@ -209,7 +209,7 @@ class LoanSerializer(serializers.ModelSerializer):
     def get_book_cover(self, obj):
         if not obj.book or not obj.book.cover_image:
             return None
-        url = obj.book.cover_image.url
+        url = str(obj.book.cover_image)  
         return url.replace('/upload/', '/upload/f_auto,w_200/')
 
     def get_borrow_request_id(self, obj):
@@ -225,7 +225,7 @@ class LoanCreateSerializer(serializers.ModelSerializer):
         model  = Loan
         fields = ['member', 'book', 'loan_date']
         extra_kwargs = {
-            'loan_date': {'required': False}   # defaults to date.today in the model
+            'loan_date': {'required': False}  
         }
 
     def validate_book(self, value):
