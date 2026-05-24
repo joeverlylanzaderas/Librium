@@ -837,7 +837,6 @@ class KnowledgeBaseView(ListCreateAPIView):
     serializer_class = KnowledgeBaseSerializer
     permission_classes = [IsAuthenticated, IsAdminOrLibrarian]  # Admin only
 
-
 class ChatbotAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -863,21 +862,19 @@ class ChatbotAPIView(APIView):
             if item.text_content:
                 context += f"- **{item.title}**: {item.text_content}\n\n"
 
-        # Build prompt for Groq
-        system_prompt = """You are Librium's friendly library assistant. Help users with library-related questions about books, borrowing, reservations, fines, and library policies. Be helpful, concise, and conversational. Keep answers brief (2-3 sentences max)."""
+        system_prompt = """You are Librium's friendly library assistant. Help users with library-related questions about books, borrowing, reservations, fines, and library policies. Be helpful, concise, and conversational. Provide ONLY the final answer, no internal reasoning or tags."""
 
         user_prompt = f"""Library Knowledge Base:
-{context if context else "No specific policies found. Use general library knowledge."}
+{context if context else "No specific policies found."}
 
 User Question: {user_message}
 
-Answer concisely based on the knowledge above:"""
+Answer directly and concisely:"""
 
-        # Groq API configuration
         GROQ_API_KEY = os.environ.get('GROQ_API_KEY')
         
         if not GROQ_API_KEY:
-            ai_response = "AI service is not configured. Please contact the administrator."
+            ai_response = "AI service is not configured."
         else:
             try:
                 response = requests.post(
@@ -887,13 +884,13 @@ Answer concisely based on the knowledge above:"""
                         "Content-Type": "application/json"
                     },
                     json={
-                        "model": "qwen/qwen3-32b",  
+                        "model": "llama-3.1-8b-instant",
                         "messages": [
                             {"role": "system", "content": system_prompt},
                             {"role": "user", "content": user_prompt}
                         ],
                         "temperature": 0.7,
-                        "max_tokens": 300
+                        "max_tokens": 500
                     },
                     timeout=30
                 )
@@ -901,16 +898,15 @@ Answer concisely based on the knowledge above:"""
                 if response.status_code == 200:
                     data = response.json()
                     ai_response = data['choices'][0]['message']['content']
+                    # Clean up any remaining tags just in case
+                    ai_response = re.sub(r'<[^>]+>', '', ai_response)
                 else:
                     error_detail = response.json().get('error', {}).get('message', 'Unknown error')
-                    ai_response = f"AI service error: {error_detail}"
+                    ai_response = f"Error: {error_detail}"
                     
-            except requests.exceptions.Timeout:
-                ai_response = "The AI service is taking too long. Please try again."
             except Exception as e:
                 ai_response = f"Error: {str(e)}"
 
-        # Save AI response
         ai_chat = ChatMessage.objects.create(
             role='assistant',
             message=ai_response
