@@ -128,13 +128,21 @@ class BorrowRequestSerializer(serializers.ModelSerializer):
 
 class BorrowRequestCreateSerializer(serializers.ModelSerializer):
     """Used by members to create a new borrow request."""
+    # 🎯 FIX: Marked as read_only so React Native doesn't have to send it
+    member = serializers.PrimaryKeyRelatedField(read_only=True)
+
     class Meta:
         model  = BorrowRequest
         fields = ['member', 'book', 'notes']
 
     def validate(self, attrs):
+        # 🎯 FIX: Pull the member from the request context automatically
+        request = self.context.get('request')
+        if not request or not request.user:
+            raise serializers.ValidationError("Authentication required.")
+        
         book   = attrs['book']
-        member = attrs['member']
+        member = request.user
 
         # block if book is already on loan or reserved for someone
         if not book.available:
@@ -153,6 +161,8 @@ class BorrowRequestCreateSerializer(serializers.ModelSerializer):
                 {'book': 'You already have an active borrow request for this book.'}
             )
 
+        # 🎯 FIX: Inject member into validated attributes
+        attrs['member'] = member
         return attrs
 
 class BorrowRequestActionSerializer(serializers.Serializer):
@@ -229,12 +239,12 @@ class LoanReturnRequestSerializer(serializers.Serializer):
 
     def validate_loan_id(self, value):
         try:
-            loan = Loan.objects.get(pk=value)
+            return_loan = Loan.objects.get(pk=value)
         except Loan.DoesNotExist:
             raise serializers.ValidationError('Loan not found.')
-        if loan.return_status == 'verified':
+        if return_loan.return_status == 'verified':
             raise serializers.ValidationError('This book has already been returned and verified.')
-        if loan.return_status == 'pending':
+        if return_loan.return_status == 'pending':
             raise serializers.ValidationError('A return request is already pending.')
         return value
 
@@ -247,10 +257,10 @@ class LoanReturnVerifySerializer(serializers.Serializer):
 
     def validate_loan_id(self, value):
         try:
-            loan = Loan.objects.get(pk=value)
+            verify_loan = Loan.objects.get(pk=value)
         except Loan.DoesNotExist:
             raise serializers.ValidationError('Loan not found.')
-        if loan.return_status == 'verified':
+        if verify_loan.return_status == 'verified':
             raise serializers.ValidationError('This return has already been verified.')
         return value
 
@@ -276,9 +286,21 @@ class ReservationSerializer(serializers.ModelSerializer):
 
 
 class ReservationCreateSerializer(serializers.ModelSerializer):
+    # 🎯 FIX: Marked as read_only so React Native doesn't have to send it
+    member = serializers.PrimaryKeyRelatedField(read_only=True)
+
     class Meta:
         model  = Reservation
         fields = ['member', 'book']
+
+    def create(self, validated_data):
+        # 🎯 FIX: Inject member object right from request instance context
+        request = self.context.get('request')
+        if not request or not request.user:
+            raise serializers.ValidationError("Authentication required.")
+        
+        validated_data['member'] = request.user
+        return super().create(validated_data)
 
 
 # ─────────────────────────────────────────────
