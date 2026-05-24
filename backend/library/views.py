@@ -6,6 +6,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.permissions import AllowAny
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from itertools import chain
@@ -838,8 +839,9 @@ class KnowledgeBaseView(ListCreateAPIView):
     serializer_class = KnowledgeBaseSerializer
     permission_classes = [IsAuthenticated, IsAdminOrLibrarian]  # Admin only
 
+
 class ChatbotAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny] 
 
     def post(self, request):
         user_message = request.data.get("message", "").strip()
@@ -850,10 +852,14 @@ class ChatbotAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Save user message
+        # Save user message - use 'Guest' for non-authenticated users
+        user_name = "Guest"
+        if request.user.is_authenticated:
+            user_name = request.user.full_name or request.user.email
+        
         user_chat = ChatMessage.objects.create(
             role='user',
-            message=user_message
+            message=f"[{user_name}]: {user_message}" if not request.user.is_authenticated else user_message
         )
 
         # Get knowledge base content
@@ -899,7 +905,6 @@ Answer directly and concisely:"""
                 if response.status_code == 200:
                     data = response.json()
                     ai_response = data['choices'][0]['message']['content']
-                    # Clean up any remaining tags just in case
                     ai_response = re.sub(r'<[^>]+>', '', ai_response)
                 else:
                     error_detail = response.json().get('error', {}).get('message', 'Unknown error')
@@ -919,6 +924,7 @@ Answer directly and concisely:"""
         }, status=status.HTTP_201_CREATED)
 
     def get(self, request):
+        # For non-authenticated users, show only recent public messages
         messages = ChatMessage.objects.all().order_by('-created_at')[:50]
         serializer = ChatMessageSerializer(messages, many=True)
         return Response(serializer.data)
