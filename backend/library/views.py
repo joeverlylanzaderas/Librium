@@ -164,8 +164,8 @@ class BookRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
         else:
             data = request.data.copy()
             if 'cover_image' in data and not request.FILES.get('cover_image'):
-                val = request.FILES.get('cover_image')
-                if val is None:
+                val = data.get('cover_image')
+                if val in [None, '', 'null']:
                     del data['cover_image']
 
         serializer = self.get_serializer(instance, data=data, partial=partial)
