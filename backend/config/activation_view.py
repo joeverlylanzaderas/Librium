@@ -1,5 +1,7 @@
+# config/activation_view.py
 from django.shortcuts import render
 from django.views import View
+from django.conf import settings
 from djoser.utils import decode_uid
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
@@ -7,44 +9,58 @@ from django.contrib.auth.tokens import default_token_generator
 
 User = get_user_model()
 
+# The frontend login URL — update this to your deployed frontend URL
+# e.g. https://librium.onrender.com/login  or  your Expo web URL
+#FRONTEND_LOGIN_URL    = getattr(settings, 'FRONTEND_LOGIN_URL',    '/')
+#FRONTEND_REGISTER_URL = getattr(settings, 'FRONTEND_REGISTER_URL', '/')
+
+FRONTEND_LOGIN_URL    = '/'
+FRONTEND_REGISTER_URL = '/'
+
 class ActivateAccountView(View):
     def get(self, request, uid, token):
-        # Validate uid + token first regardless of client
+
+        # ── Validate uid ──────────────────────────────────────────
         try:
             user_id = decode_uid(uid)
             user    = User.objects.get(pk=user_id)
         except (ObjectDoesNotExist, ValueError, TypeError):
             return render(request, 'activation.html', {
-                'success': False,
-                'message': 'Invalid activation link.',
-                'uid': uid, 'token': token,
+                'success':      False,
+                'message':      'This activation link is invalid or has been tampered with.',
+                'login_url':    FRONTEND_LOGIN_URL,
+                'register_url': FRONTEND_REGISTER_URL,
             })
 
+        # ── Validate token ────────────────────────────────────────
         if not default_token_generator.check_token(user, token):
             return render(request, 'activation.html', {
-                'success': False,
-                'message': 'This link has expired or already been used.',
-                'uid': uid, 'token': token,
+                'success':      False,
+                'message':      'This link has expired or has already been used. '
+                                'Links are valid for 24 hours — please register again.',
+                'login_url':    FRONTEND_LOGIN_URL,
+                'register_url': FRONTEND_REGISTER_URL,
             })
 
+        # ── Activate user ─────────────────────────────────────────
         already_active = user.is_active
 
         if not already_active:
             user.is_active = True
-            user.save()
+            user.save(update_fields=['is_active'])
 
-        # Detect if request came from Android APK via intent
-        # Android Chrome adds an intent header; also check user-agent
+        # ── Detect mobile client ──────────────────────────────────
         user_agent = request.META.get('HTTP_USER_AGENT', '').lower()
-        is_mobile  = 'android' in user_agent or 'iphone' in user_agent
+        is_mobile  = 'android' in user_agent or 'iphone' in user_agent or 'expo' in user_agent
 
         return render(request, 'activation.html', {
-            'success':      True,
+            'success':        True,
             'already_active': already_active,
-            'message':      'Your account has been activated! You can now log in.',
-            'uid':          uid,
-            'token':        token,
-            'is_mobile':    is_mobile,
-            # deep link the app can intercept
-            'app_link':     f'librium://activated',
+            'message':        'Your Librium account is now active. You can sign in.',
+            'uid':            uid,
+            'token':          token,
+            'is_mobile':      is_mobile,
+            'app_link':       'librium://activated',
+            'login_url':      FRONTEND_LOGIN_URL,
+            'register_url':   FRONTEND_REGISTER_URL,
         })

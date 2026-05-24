@@ -101,7 +101,7 @@ class UserCreateSerializer(DjoserUserCreateSerializer):
         sex          = validated_data.pop('sex', None)
         password     = validated_data.pop('password')
 
-        # Create user — is_active=False until email verified
+        # Create user — is_active=False from model default (instructor requirement #2)
         user = User(**validated_data)
         user.set_password(password)
         user.is_active = False
@@ -118,29 +118,10 @@ class UserCreateSerializer(DjoserUserCreateSerializer):
                 profile.phone_number = phone_number
             profile.save()
 
-        # ── Send activation email in background thread ─────────────
-        # Djoser's SEND_ACTIVATION_EMAIL=True would block the Gunicorn
-        # worker waiting for Gmail SMTP (~30s+) causing a timeout 500.
-        # Threading lets the response return immediately while email
-        # sends in the background. The instructor flow still works:
-        #   1. User registers → is_active=False  ✓
-        #   2. Login denied (inactive)            ✓
-        #   3. Email arrives, user clicks link    ✓
-        #   4. is_active=True, login succeeds     ✓
-        import threading
-        from djoser.email import ActivationEmail
-
-        request = self.context.get('request')
-
-        def send_activation_email():
-            try:
-                ActivationEmail(request, {'user': user}).send([user.email])
-                print(f'[Librium] Activation email sent to {user.email}')
-            except Exception as e:
-                print(f'[Librium] Activation email FAILED for {user.email}: {e}')
-
-        thread = threading.Thread(target=send_activation_email, daemon=True)
-        thread.start()
+        # NOTE: activation email is NOT sent here.
+        # Djoser sends it automatically via user.email.ActivationEmail
+        # which is our threaded override in user/email.py.
+        # SEND_ACTIVATION_EMAIL = True in settings handles this.
 
         return user
 

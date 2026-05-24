@@ -16,6 +16,9 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'librium.onrender.com']
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = True  # development only
 
+FRONTEND_LOGIN_URL    = '/'
+FRONTEND_REGISTER_URL = '/'
+
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -169,16 +172,16 @@ DJOSER = {
     'SEND_ACTIVATION_EMAIL': True,
     'ACTIVATION_URL': 'activate/{uid}/{token}',  
     'PASSWORD_RESET_CONFIRM_URL': 'password/reset/confirm/{uid}/{token}',
-    'PROTOCOL': 'https', 
+    'PROTOCOL': 'https',
+    'EMAIL': {
+        'activation': 'user.email.ActivationEmail',
+    },
     'SERIALIZERS': {
-        'user_create': 'user.serializers.UserCreateSerializer',
-        'user':        'user.serializers.UserSerializer',
+        'user_create':  'user.serializers.UserCreateSerializer',
+        'user':         'user.serializers.UserSerializer',
         'current_user': 'user.serializers.UserSerializer',
     },
 }
-
-# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-
 
 # ─────────────────────────────────────────────
 # CLOUDINARY / MEDIA
@@ -219,10 +222,9 @@ USE_TZ        = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-
-
+# JAZZMIN CONFIGURATION
 JAZZMIN_SETTINGS = {
-    # ── Branding ──────────────────────────────────────────────
+    # Branding 
     "site_title": "Librium",
     "site_header": "Librium Library System",
     "site_brand": "Librium",
@@ -232,19 +234,19 @@ JAZZMIN_SETTINGS = {
     "welcome_sign": "Welcome to Librium Admin",
     "copyright": "Librium University Library",
 
-    # ── Top navigation ────────────────────────────────────────
+    # Top navigation
     "topmenu_links": [
         {"name": "Dashboard", "url": "admin:index", "permissions": ["auth.view_user"]},
         {"name": "API Docs",  "url": "/api/schema/swagger-ui/", "new_window": True},
         {"name": "View Site", "url": "/", "new_window": True},
     ],
 
-    # ── User menu (top-right) ─────────────────────────────────
+    # User menu (top-right) 
     "usermenu_links": [
         {"name": "Support", "url": "#", "icon": "fas fa-circle-question"},
     ],
 
-    # ── Sidebar ───────────────────────────────────────────────
+    # Sidebar
     "show_sidebar": True,
     "navigation_expanded": True,
     "hide_apps": [],
@@ -284,7 +286,7 @@ JAZZMIN_SETTINGS = {
     "default_icon_parents": "fas fa-chevron-circle-right",
     "default_icon_children": "fas fa-circle",
 
-    # ── UI tweaks ─────────────────────────────────────────────
+    # UI tweaks
     "related_modal_active": True,       
     "custom_css": "admin/css/librium.css",
     "custom_js": None,
