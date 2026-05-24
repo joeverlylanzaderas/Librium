@@ -858,47 +858,56 @@ class ChatbotAPIView(APIView):
         # Get knowledge base content
         knowledge_items = KnowledgeBase.objects.all()
         context = ""
-        
         for item in knowledge_items:
             if item.text_content:
-                context += item.text_content + "\n\n"
+                context += f"- **{item.title}**: {item.text_content}\n\n"
 
-        # Build prompt for Ollama
-        prompt = f"""You are Librium's library assistant. Help users with library-related questions about books, borrowing, reservations, fines, and library policies.
+        # Build prompt for Groq
+        system_prompt = """You are Librium's friendly library assistant. Help users with library-related questions about books, borrowing, reservations, fines, and library policies. Be helpful, concise, and conversational. Use emojis occasionally for friendliness (📚, 🕒, 💰, 🔖)."""
 
-Library Knowledge:
-{context if context else "General library assistant for Librium University Library."}
+        user_prompt = f"""Library Knowledge Base:
+{context if context else "No specific policies found. Use general library knowledge."}
 
 User Question: {user_message}
 
-Please provide a helpful, concise answer based on the library knowledge above."""
+Please provide a helpful, concise answer based on the library knowledge above. If the answer isn't in the knowledge base, provide general library assistance."""
 
-        try:
-            # Call Ollama API
-            response = requests.post(
-                "http://127.0.0.1:11434/api/generate",
-                json={
-                    "model": "qwen2.5:0.5b",
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {
+        # Groq API configuration
+        GROQ_API_KEY = os.environ.get('GROQ_API_KEY')
+        
+        if not GROQ_API_KEY:
+            ai_response = "AI service is not configured. Please contact the administrator."
+        else:
+            try:
+                response = requests.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {GROQ_API_KEY}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "model": "mixtral-8x7b-32768",  # Free and powerful
+                        "messages": [
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt}
+                        ],
                         "temperature": 0.7,
                         "max_tokens": 500
-                    }
-                },
-                timeout=60
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
-                ai_response = data.get("response", "I'm sorry, I couldn't process that request.")
-            else:
-                ai_response = "I'm having trouble connecting. Please try again later."
+                    },
+                    timeout=30
+                )
                 
-        except requests.exceptions.ConnectionError:
-            ai_response = "The AI service is currently unavailable. Please try again later."
-        except Exception as e:
-            ai_response = f"An error occurred. Please try again."
+                if response.status_code == 200:
+                    data = response.json()
+                    ai_response = data['choices'][0]['message']['content']
+                else:
+                    error_detail = response.json().get('error', {}).get('message', 'Unknown error')
+                    ai_response = f"AI service error: {error_detail}"
+                    
+            except requests.exceptions.Timeout:
+                ai_response = "The AI service is taking too long. Please try again."
+            except Exception as e:
+                ai_response = f"Error: {str(e)}"
 
         # Save AI response
         ai_chat = ChatMessage.objects.create(
@@ -912,7 +921,6 @@ Please provide a helpful, concise answer based on the library knowledge above.""
         }, status=status.HTTP_201_CREATED)
 
     def get(self, request):
-        # Get chat history for the user (last 50 messages)
         messages = ChatMessage.objects.all().order_by('-created_at')[:50]
         serializer = ChatMessageSerializer(messages, many=True)
         return Response(serializer.data)
