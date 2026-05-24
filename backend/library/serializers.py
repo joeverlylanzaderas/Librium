@@ -128,7 +128,6 @@ class BorrowRequestSerializer(serializers.ModelSerializer):
 
 class BorrowRequestCreateSerializer(serializers.ModelSerializer):
     """Used by members to create a new borrow request."""
-    # 🎯 FIX: Marked as read_only so React Native doesn't have to send it
     member = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
@@ -136,7 +135,6 @@ class BorrowRequestCreateSerializer(serializers.ModelSerializer):
         fields = ['member', 'book', 'notes']
 
     def validate(self, attrs):
-        # 🎯 FIX: Pull the member from the request context automatically
         request = self.context.get('request')
         if not request or not request.user:
             raise serializers.ValidationError("Authentication required.")

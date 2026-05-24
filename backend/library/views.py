@@ -369,8 +369,12 @@ class BorrowRequestRejectAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        serializer = BorrowRequestActionSerializer(data=request.data)
+        serializer = BorrowRequestCreateSerializer(
+            data=request.data,
+            context={'request': request}   
+        )
         serializer.is_valid(raise_exception=True)
+        borrow_request = serializer.save() 
 
         today = timezone.now().date()
         borrow_request.status         = 'rejected'
@@ -563,7 +567,10 @@ class ReservationListCreateAPIView(generics.ListCreateAPIView):
         return base.all()
 
     def create(self, request, *args, **kwargs):
-        serializer = ReservationCreateSerializer(data=request.data)
+        serializer = ReservationCreateSerializer(
+            data=request.data,
+            context={'request': request}  
+        )
         serializer.is_valid(raise_exception=True)
 
         book = serializer.validated_data['book']
