@@ -864,14 +864,14 @@ class ChatbotAPIView(APIView):
                 context += f"- **{item.title}**: {item.text_content}\n\n"
 
         # Build prompt for Groq
-        system_prompt = """You are Librium's friendly library assistant. Help users with library-related questions about books, borrowing, reservations, fines, and library policies. Be helpful, concise, and conversational. Use emojis occasionally for friendliness (📚, 🕒, 💰, 🔖)."""
+        system_prompt = """You are Librium's friendly library assistant. Help users with library-related questions about books, borrowing, reservations, fines, and library policies. Be helpful, concise, and conversational. Keep answers brief (2-3 sentences max)."""
 
         user_prompt = f"""Library Knowledge Base:
 {context if context else "No specific policies found. Use general library knowledge."}
 
 User Question: {user_message}
 
-Please provide a helpful, concise answer based on the library knowledge above. If the answer isn't in the knowledge base, provide general library assistance."""
+Answer concisely based on the knowledge above:"""
 
         # Groq API configuration
         GROQ_API_KEY = os.environ.get('GROQ_API_KEY')
@@ -887,13 +887,13 @@ Please provide a helpful, concise answer based on the library knowledge above. I
                         "Content-Type": "application/json"
                     },
                     json={
-                        "model": "mixtral-8x7b-32768",  # Free and powerful
+                        "model": "qwen/qwen3-32b",  
                         "messages": [
                             {"role": "system", "content": system_prompt},
                             {"role": "user", "content": user_prompt}
                         ],
                         "temperature": 0.7,
-                        "max_tokens": 500
+                        "max_tokens": 300
                     },
                     timeout=30
                 )
