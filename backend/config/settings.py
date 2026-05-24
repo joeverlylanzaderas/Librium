@@ -151,18 +151,17 @@ SIMPLE_JWT = {
 # EMAIL
 # ─────────────────────────────────────────────
 
-EMAIL_BACKEND       = 'anymail.backends.brevo.EmailBackend'
+EMAIL_BACKEND = 'anymail.backends.brevo.EmailBackend'
+
 ANYMAIL = {
     "BREVO_API_KEY": os.environ.get("BREVO_API_KEY"),
 }
-EMAIL_TIMEOUT       = 60
-DEFAULT_FROM_EMAIL  = 'lanzaderas.joeverlypearl04@gmail.com'
-EMAIL_SUBJECT_PREFIX = ''
-DEFAULT_EMAIL_SUBJECT = 'Activate Your Librium Account'
 
-DOMAIN    = os.environ.get('DOMAIN', 'librium.onrender.com')
+EMAIL_TIMEOUT = 60
+DEFAULT_FROM_EMAIL = 'lanzaderas.joeverlypearl04@gmail.com'
+
+DOMAIN = os.environ.get('DOMAIN', 'librium.onrender.com')
 SITE_NAME = 'Librium Library'
-
 
 # ─────────────────────────────────────────────
 # DJOSER
