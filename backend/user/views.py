@@ -110,20 +110,13 @@ class CurrentUserRetrieveUpdateAPIView(generics.RetrieveUpdateAPIView):
         user_serializer.is_valid(raise_exception=True)
         user_serializer.save()
 
-        if 'profile' in request.data or 'profile_picture' in request.FILES:
+        if 'profile' in request.data:
             profile, _ = UserProfile.objects.get_or_create(user=user)
-
             profile_data = request.data.get('profile', {})
             if isinstance(profile_data, str):
                 import json
                 profile_data = json.loads(profile_data)
-
-            if 'profile_picture' in request.FILES:
-                profile_data = {**profile_data, 'profile_picture': request.FILES['profile_picture']}
-
-            profile_serializer = UserProfileUpdateSerializer(
-                profile, data=profile_data, partial=True
-            )
+            profile_serializer = UserProfileUpdateSerializer(profile, data=profile_data, partial=True)
             profile_serializer.is_valid(raise_exception=True)
             profile_serializer.save()
 
