@@ -36,12 +36,8 @@ urlpatterns = [
 
     # ── Loans ─────────────────────────────────────────────────
     path('loans/', views.LoanListCreateAPIView.as_view(), name='loan-list-create'),
-
-    # matches api.ts: req('POST', '/library/loans/return-request/', { loan_id, notes })
     path('loans/return-request/', views.LoanReturnRequestAPIView.as_view(),  name='loan-return-request'),
-    # matches api.ts: req('POST', '/library/loans/return-verify/', { loan_id, status, notes })
     path('loans/return-verify/',  views.LoanReturnVerifyAPIView.as_view(),   name='loan-return-verify'),
-    # matches api.ts: req('GET', '/library/loans/by-semester/?semester=<id>')
     path('loans/by-semester/',    views.LoanBySemesterAPIView.as_view(),     name='loan-by-semester'),
     path('loans/<int:pk>/', views.LoanRetrieveUpdateDestroyAPIView.as_view(), name='loan-detail'),
 
