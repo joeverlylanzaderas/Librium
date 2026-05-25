@@ -7,7 +7,8 @@ import { AuthProvider } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
-import { Fonts } from './src/constants/theme'; 
+import { Fonts } from './src/constants/theme';
+import Chatbot from './src/components/Chatbot'; 
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -22,16 +23,13 @@ const linking: LinkingOptions<any> = {
   ],
   config: {
     screens: {
-      // Matches the "Authentication" screen name in AppNavigator
       Authentication: {
         path: '',
         screens: {
-          // Captures "activate/uid/token" sent by Django/Djoser
           Login: 'login',
           Register: 'register',
         },
       },
-      // Matches the "Admin" stack screen name AppNavigator
       Admin: {
         path: 'admin',
         screens: {
@@ -47,7 +45,6 @@ const linking: LinkingOptions<any> = {
           Semesters: 'semesters',
         },
       },
-      // Matches the "Librarian" stack screen name in AppNavigator
       Librarian: {
         path: 'librarian',
         screens: {
@@ -60,7 +57,6 @@ const linking: LinkingOptions<any> = {
           LibrarianMembers: 'members',
         },
       },
-      // Matches the "Borrower" stack screen name in your AppNavigator
       Borrower: {
         path: 'borrower',
         screens: {
@@ -134,6 +130,7 @@ export default function App() {
         <NavigationContainer linking={linking} theme={CustomNavigationTheme}>
           <StatusBar style="light" />
           <AppNavigator />
+          <Chatbot /> {/* ← Chatbot is now visible on ALL screens (including Login) */}
         </NavigationContainer>
       </AuthProvider>
     </View>

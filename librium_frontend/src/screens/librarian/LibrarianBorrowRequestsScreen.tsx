@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  RefreshControl, Alert, TextInput, Modal, ActivityIndicator,
+  RefreshControl, Alert, TextInput, Modal, ActivityIndicator, Platform,
 } from 'react-native';
 import { getBorrowRequests, approveBorrowRequest, rejectBorrowRequest } from '../../services/api';
 import { C, Badge, Empty, Loading } from '../../components/UI';
@@ -28,11 +28,15 @@ const statusColor = (s: string) => {
 };
 
 export default function LibrarianBorrowRequestsScreen() {
-  const [requests, setRequests]   = useState<BorrowRequest[]>([]);
-  const [filter, setFilter]       = useState<string>('pending');
-  const [loading, setLoading]     = useState(true);
+  const [requests, setRequests]     = useState<BorrowRequest[]>([]);
+  const [filter, setFilter]         = useState<string>('pending');
+  const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [acting, setActing]       = useState<number | null>(null);
+  const [acting, setActing]         = useState<number | null>(null);
+
+  // Approve modal — replaces Alert.alert (broken on Expo web)
+  const [approveModal, setApproveModal] = useState(false);
+  const [approveTarget, setApproveTarget] = useState<BorrowRequest | null>(null);
 
   // Reject modal
   const [rejectModal, setRejectModal] = useState(false);
@@ -53,29 +57,26 @@ export default function LibrarianBorrowRequestsScreen() {
 
   useEffect(() => { setLoading(true); load(); }, [load]);
 
-  const handleApprove = (id: number, memberName: string, bookTitle: string) => {
-    Alert.alert(
-      'Approve Request',
-      `Approve borrow request from ${memberName} for "${bookTitle}"?\n\nThis will create a loan and mark the book as unavailable.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Approve', style: 'default',
-          onPress: async () => {
-            setActing(id);
-            try {
-              // Match api.ts signature: pass an empty string for the optional notes parameter
-              await approveBorrowRequest(id, ''); 
-              load();
-            } catch (e: any) {
-              Alert.alert('Error', e?.data?.error ?? 'Could not approve request.');
-            } finally {
-              setActing(null);
-            }
-          },
-        },
-      ]
-    );
+  // Open the approve confirmation modal
+  const handleApprove = (item: BorrowRequest) => {
+    setApproveTarget(item);
+    setApproveModal(true);
+  };
+
+  // Actually fire the approve API call
+  const handleApproveConfirm = async () => {
+    if (!approveTarget) return;
+    setActing(approveTarget.id);
+    setApproveModal(false);
+    try {
+      await approveBorrowRequest(approveTarget.id);
+      await load();
+    } catch (e: any) {
+      Alert.alert('Error', e?.data?.error ?? e?.data?.detail ?? 'Could not approve request.');
+    } finally {
+      setActing(null);
+      setApproveTarget(null);
+    }
   };
 
   const handleRejectConfirm = async () => {
@@ -86,7 +87,7 @@ export default function LibrarianBorrowRequestsScreen() {
       setRejectModal(false);
       setRejectNote('');
       setRejectId(null);
-      load();
+      await load();
     } catch (e: any) {
       Alert.alert('Error', e?.data?.error ?? 'Could not reject request.');
     } finally {
@@ -110,7 +111,7 @@ export default function LibrarianBorrowRequestsScreen() {
         <View style={s.actions}>
           <TouchableOpacity
             style={[s.actionBtn, { backgroundColor: C.success + '22', borderColor: C.success }]}
-            onPress={() => handleApprove(item.id, item.member_name, item.book_title)}
+            onPress={() => handleApprove(item)}
             disabled={acting === item.id}
           >
             {acting === item.id
@@ -163,7 +164,37 @@ export default function LibrarianBorrowRequestsScreen() {
           />
       }
 
-      {/* Reject modal */}
+      {/* ── Approve confirmation modal ── */}
+      <Modal visible={approveModal} transparent animationType="fade">
+        <View style={s.overlay}>
+          <View style={s.modal}>
+            <Text style={s.modalTitle}>Approve Request</Text>
+            <Text style={s.modalSub}>
+              Approve borrow request from{' '}
+              <Text style={{ fontWeight: '700', color: '#1F150C' }}>{approveTarget?.member_name}</Text>
+              {' '}for{' '}
+              <Text style={{ fontWeight: '700', color: '#1F150C' }}>"{approveTarget?.book_title}"</Text>?
+              {'\n\n'}This will create a loan and mark the book as unavailable.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
+              <TouchableOpacity
+                style={[s.modalBtn, { flex: 1, backgroundColor: C.card }]}
+                onPress={() => { setApproveModal(false); setApproveTarget(null); }}
+              >
+                <Text style={{ color: C.sub, fontWeight: '600' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.modalBtn, { flex: 1, backgroundColor: C.success }]}
+                onPress={handleApproveConfirm}
+              >
+                <Text style={{ color: '#fff', fontWeight: '600' }}>✓ Approve</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Reject modal ── */}
       <Modal visible={rejectModal} transparent animationType="fade">
         <View style={s.overlay}>
           <View style={s.modal}>
@@ -199,156 +230,25 @@ export default function LibrarianBorrowRequestsScreen() {
 }
 
 const s = StyleSheet.create({
-  filterRow: { 
-    flexDirection: 'row', 
-    backgroundColor: '#1F150C', 
-    paddingHorizontal: 16, 
-    paddingVertical: 12, 
-    gap: 8, 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#412D15' 
-  },
-  filterTab: { 
-    paddingHorizontal: 16, 
-    paddingVertical: 6, 
-    borderRadius: 4, 
-    borderWidth: 1, 
-    borderColor: '#EFE9CE',
-    backgroundColor: '#FBF5DD'
-  },
-  filterTabActive: { 
-    backgroundColor: '#412D15', 
-    borderColor: '#FFC85C' 
-  },
-  filterTxt: { 
-    color: '#2D1F10', 
-    fontSize: 13, 
-    fontWeight: '700',
-    letterSpacing: 0.3
-  },
-  filterTxtActive: { 
-    color: '#FBF5DD' 
-  },
-  card: { 
-    backgroundColor: '#FFFDF9', 
-    borderRadius: 8, 
-    borderWidth: 1, 
-    borderColor: '#EFE9CE', 
-    padding: 16, 
-    marginBottom: 16,
-    shadowColor: '#1F150C',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  cardTop: { 
-    flexDirection: 'row', 
-    gap: 12, 
-    alignItems: 'flex-start' 
-  },
-  memberName: { 
-    color: '#1F150C', 
-    fontSize: 15, 
-    fontWeight: '700',
-    marginBottom: 4
-  },
-  bookTitle: { 
-    color: '#2D1F10', 
-    fontWeight: '600',
-    fontSize: 14, 
-    lineHeight: 20,
-    marginBottom: 6
-  },
-  date: { 
-    color: '#706251', 
-    fontSize: 12, 
-    fontWeight: '500',
-    marginTop: 3 
-  },
-  notes: { 
-    backgroundColor: 'rgba(239, 233, 206, 0.3)',
-    borderRadius: 4,
-    padding: 8,
-    marginTop: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: '#706251',
-    color: '#706251', 
-    fontSize: 12, 
-    fontStyle: 'italic' 
-  },
-  actions: { 
-    flexDirection: 'row', 
-    gap: 10, 
-    marginTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#EFE9CE',
-    paddingTop: 12 
-  },
-  actionBtn: { 
-    flex: 1, 
-    borderWidth: 1, 
-    borderRadius: 6, 
-    paddingVertical: 8, 
-    alignItems: 'center',
-    height: 38,
-    justifyContent: 'center'
-  },
-  actionTxt: { 
-    fontSize: 13, 
-    fontWeight: '700' 
-  },
-  loanRef: { 
-    color: C.success, 
-    fontSize: 12, 
-    marginTop: 8, 
-    fontWeight: '600' 
-  },
-  overlay: { 
-    flex: 1, 
-    backgroundColor: 'rgba(31, 21, 12, 0.6)', 
-    justifyContent: 'center', 
-    padding: 24 
-  },
-  modal: { 
-    backgroundColor: '#FFFDF9', 
-    borderRadius: 8, 
-    padding: 20, 
-    borderWidth: 1, 
-    borderColor: '#EFE9CE',
-    shadowColor: '#1F150C',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 5
-  },
-  modalTitle: { 
-    color: '#1F150C', 
-    fontSize: 18, 
-    fontWeight: '700', 
-    marginBottom: 4 
-  },
-  modalSub: { 
-    color: '#706251', 
-    fontSize: 13, 
-    marginBottom: 12 
-  },
-  modalInput: { 
-    backgroundColor: '#FFFDF9', 
-    color: '#1F150C', 
-    borderWidth: 1, 
-    borderColor: '#EFE9CE', 
-    borderRadius: 6, 
-    padding: 10, 
-    fontSize: 13, 
-    textAlignVertical: 'top',
-    minHeight: 80
-  },
-  modalBtn: { 
-    borderRadius: 6, 
-    paddingVertical: 10, 
-    alignItems: 'center',
-    height: 40,
-    justifyContent: 'center'
-  },
+  filterRow:       { flexDirection: 'row', backgroundColor: '#1F150C', paddingHorizontal: 16, paddingVertical: 12, gap: 8, borderBottomWidth: 1, borderBottomColor: '#412D15' },
+  filterTab:       { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 4, borderWidth: 1, borderColor: '#EFE9CE', backgroundColor: '#FBF5DD' },
+  filterTabActive: { backgroundColor: '#412D15', borderColor: '#FFC85C' },
+  filterTxt:       { color: '#2D1F10', fontSize: 13, fontWeight: '700', letterSpacing: 0.3 },
+  filterTxtActive: { color: '#FBF5DD' },
+  card:            { backgroundColor: '#FFFDF9', borderRadius: 8, borderWidth: 1, borderColor: '#EFE9CE', padding: 16, marginBottom: 16, shadowColor: '#1F150C', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 2 },
+  cardTop:         { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+  memberName:      { color: '#1F150C', fontSize: 15, fontWeight: '700', marginBottom: 4 },
+  bookTitle:       { color: '#2D1F10', fontWeight: '600', fontSize: 14, lineHeight: 20, marginBottom: 6 },
+  date:            { color: '#706251', fontSize: 12, fontWeight: '500', marginTop: 3 },
+  notes:           { backgroundColor: 'rgba(239, 233, 206, 0.3)', borderRadius: 4, padding: 8, marginTop: 8, borderLeftWidth: 3, borderLeftColor: '#706251', color: '#706251', fontSize: 12, fontStyle: 'italic' },
+  actions:         { flexDirection: 'row', gap: 10, marginTop: 16, borderTopWidth: 1, borderTopColor: '#EFE9CE', paddingTop: 12 },
+  actionBtn:       { flex: 1, borderWidth: 1, borderRadius: 6, paddingVertical: 8, alignItems: 'center', height: 38, justifyContent: 'center' },
+  actionTxt:       { fontSize: 13, fontWeight: '700' },
+  loanRef:         { color: C.success, fontSize: 12, marginTop: 8, fontWeight: '600' },
+  overlay:         { flex: 1, backgroundColor: 'rgba(31, 21, 12, 0.6)', justifyContent: 'center', padding: 24 },
+  modal:           { backgroundColor: '#FFFDF9', borderRadius: 8, padding: 20, borderWidth: 1, borderColor: '#EFE9CE', shadowColor: '#1F150C', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 5 },
+  modalTitle:      { color: '#1F150C', fontSize: 18, fontWeight: '700', marginBottom: 4 },
+  modalSub:        { color: '#706251', fontSize: 13, marginBottom: 12, lineHeight: 20 },
+  modalInput:      { backgroundColor: '#FFFDF9', color: '#1F150C', borderWidth: 1, borderColor: '#EFE9CE', borderRadius: 6, padding: 10, fontSize: 13, textAlignVertical: 'top', minHeight: 80 },
+  modalBtn:        { borderRadius: 6, paddingVertical: 10, alignItems: 'center', height: 40, justifyContent: 'center' },
 });

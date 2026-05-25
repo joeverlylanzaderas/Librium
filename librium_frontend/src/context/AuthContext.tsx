@@ -19,6 +19,7 @@ type User = {
   email: string;
   full_name?: string;
   role?: string;
+  profile_picture?: string | null;
 };
 
 type AuthContextType = {
@@ -26,69 +27,53 @@ type AuthContextType = {
   loading: boolean;
   signIn: (token: string, userData: User) => Promise<void>;
   signOut: () => Promise<void>;
+  refreshUser: (updates: Partial<User>) => Promise<void>;  
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export const AuthProvider = ({
-  children,
-}: {
-  children: ReactNode;
-}) => {
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // ── Restore session on app start ─────────────────────
   useEffect(() => {
     const restoreSession = async () => {
       try {
         await loadToken();
-
         const storedUser = await AsyncStorage.getItem('user');
-
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
-        }
+        if (storedUser) setUser(JSON.parse(storedUser));
       } catch (e) {
-        //console.log('Restore session error:', e);
       } finally {
         setLoading(false);
       }
     };
-
     restoreSession();
   }, []);
 
-  // ── Login ────────────────────────────────────────────
   const signIn = async (token: string, userData: User) => {
-    //console.log('🔐 SignIn - Setting token:', !!token);
     await setToken(token);
     await AsyncStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
-    
-    // Verify token was stored
-    const savedToken = await AsyncStorage.getItem('token');
-    //console.log('🔐 Token saved successfully:', !!savedToken);
   };
 
-  // ── Logout ───────────────────────────────────────────
   const signOut = async () => {
     await clearToken();
-
     await AsyncStorage.removeItem('user');
-
     setUser(null);
   };
 
+  // ── Merge partial updates into the stored user ───────
+  const refreshUser = async (updates: Partial<User>) => {
+    setUser(prev => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...updates };
+      AsyncStorage.setItem('user', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        signIn,
-        signOut,
-      }}
-    >
+    <AuthContext.Provider value={{ user, loading, signIn, signOut, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

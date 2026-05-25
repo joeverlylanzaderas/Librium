@@ -97,7 +97,6 @@ export default function BorrowRequestsScreen() {
   };
 
   return (
-    <SidebarLayout currentScreen="Requests">
       <View style={s.root}>
         <View style={s.tabsContainer}>
           <ScrollView 
@@ -193,7 +192,6 @@ export default function BorrowRequestsScreen() {
           </ScrollView>
         )}
       </View>
-    </SidebarLayout>
   );
 }
 

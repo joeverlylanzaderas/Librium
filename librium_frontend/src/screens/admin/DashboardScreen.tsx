@@ -11,7 +11,6 @@ import { getDashboard } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { Loading } from '../../components/UI';
 import { AdminStackParamList } from '../../navigation/AppNavigator';
-import SidebarLayout from '../../components/SidebarLayout';
 
 type Props = { navigation: NativeStackNavigationProp<AdminStackParamList, 'Dashboard'>; };
 type ActivityEntry = { type: 'loan' | 'return' | 'fine' | 'request'; label: string; member: string; book: string; date: string | null; };
@@ -28,7 +27,7 @@ const P = {
 };
 
 const SERIF_FONT = Platform.select({ ios: 'Georgia', android: 'serif' });
-const DISPLAY_FONT = 'Literata-Bold'; // Updated header branding assignment
+const DISPLAY_FONT = 'Literata-Bold';
 
 const ACTIVITY_META: Record<string, { icon: string; color: string }> = {
   loan: { icon: 'book-outline', color: P.mahogany }, return: { icon: 'checkmark-circle-outline', color: P.success },
@@ -44,7 +43,7 @@ function chunk<T>(arr: T[], size: number): T[][] {
 function StatCard({
   label, value, icon, accent = P.mahogany, onPress, cardBg = P.parchmentDark, accentText = '#000', labelColor = '#000', showBottomTag = false, tagText = ''
 }: {
-  label: string; value?: number | string; icon: string; accent?: string; onPress?: () => void; cardBg?: string; 
+  label: string; value?: number | string; icon: string; accent?: string; onPress?: () => void; cardBg?: string;
   accentText?: string; labelColor?: string; showBottomTag?: boolean; tagText?: string;
 }) {
   const [hovered, setHovered] = useState(false);
@@ -75,11 +74,10 @@ function StatCard({
 function QuickTile({ label, icon, count, onPress }: { label: string; icon: string; count?: number; onPress: () => void }) {
   const [hovered, setHovered] = useState(false);
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[s.tile, hovered && s.tileHover]} onPress={onPress} activeOpacity={0.75}
       {...(Platform.OS === 'web' ? { onMouseEnter: () => setHovered(true), onMouseLeave: () => setHovered(false) } : {})}
     >
-      {/* Absolute context-positioned micro badge */}
       {!!count && (
         <View style={s.tileBadge}>
           <Text style={s.tileBadgeText}>{count > 99 ? '99+' : count}</Text>
@@ -115,7 +113,7 @@ function LedgerStatRow({ label, value, icon, color, last, onPress }: {
 }) {
   const [hovered, setHovered] = useState(false);
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[s.ledgerRow, hovered && s.ledgerHover, !last && s.ledgerBorder]} onPress={onPress} activeOpacity={0.7}
       {...(Platform.OS === 'web' ? { onMouseEnter: () => setHovered(true), onMouseLeave: () => setHovered(false) } : {})}
     >
@@ -124,7 +122,7 @@ function LedgerStatRow({ label, value, icon, color, last, onPress }: {
         <Text style={s.ledgerLabel}>{label}</Text>
       </View>
       <View style={s.ledgerRight}>
-        <Text style={[s.ledgerValue, { color: color }]}>{value}</Text>
+        <Text style={[s.ledgerValue, { color }]}>{value}</Text>
         <Ionicons name="chevron-forward" size={14} color={P.textMuted} />
       </View>
     </TouchableOpacity>
@@ -149,96 +147,118 @@ export default function DashboardScreen({ navigation }: Props) {
   const isDesktop = width > 768;
   const tileCols = width >= 1024 ? 5 : width >= 640 ? 5 : 4;
 
-  // Direct context mapping architecture for linking notification metrics onto shortcuts
   const quickLinks = [
-    { label: 'Books', screen: 'Books', icon: 'book-outline' },
+    { label: 'Books',           screen: 'Books',          icon: 'book-outline',      count: undefined },
     { label: 'Borrow Requests', screen: 'BorrowRequests', icon: 'hand-left-outline', count: stats?.pending_borrow_requests },
-    { label: 'Loans', screen: 'Loans', icon: 'receipt-outline', count: stats?.overdue_loans },
-    { label: 'Reservations', screen: 'Reservations', icon: 'bookmark-outline', count: stats?.active_reservations },
-    { label: 'Fines', screen: 'Fines', icon: 'cash-outline' },
-    { label: 'Members', screen: 'Members', icon: 'people-outline' },
-    { label: 'Authors', screen: 'Authors', icon: 'person-outline' },
-    { label: 'Categories', screen: 'Categories', icon: 'pricetag-outline' },
-    { label: 'Departments', screen: 'Departments', icon: 'business-outline' },
-    { label: 'Semesters', screen: 'Semesters', icon: 'calendar-outline' },
+    { label: 'Loans',           screen: 'Loans',          icon: 'receipt-outline',   count: stats?.overdue_loans },
+    { label: 'Reservations',    screen: 'Reservations',   icon: 'bookmark-outline',  count: stats?.active_reservations },
+    { label: 'Fines',           screen: 'Fines',          icon: 'cash-outline',      count: undefined },
+    { label: 'Members',         screen: 'Members',        icon: 'people-outline',    count: undefined },
+    { label: 'Authors',         screen: 'Authors',        icon: 'person-outline',    count: undefined },
+    { label: 'Categories',      screen: 'Categories',     icon: 'pricetag-outline',  count: undefined },
+    { label: 'Departments',     screen: 'Departments',    icon: 'business-outline',  count: undefined },
+    { label: 'Semesters',       screen: 'Semesters',      icon: 'calendar-outline',  count: undefined },
   ];
 
-  const activity = stats?.recent_activity ?? [];
-  const tileRows = chunk(quickLinks, tileCols);
+  const activity   = stats?.recent_activity ?? [];
+  const tileRows   = chunk(quickLinks, tileCols);
   const contentStyle = width > 1200 ? { maxWidth: 1200, alignSelf: 'center' as const, width: '100%' as any } : {};
   const unpaidFinesDisplay = stats?.unpaid_fines_total !== undefined ? `₱${Number(stats.unpaid_fines_total).toLocaleString('en-PH')}` : '₱0';
   const formattedDate = new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   return (
-    <SidebarLayout>
-      <ScrollView
-        style={s.root} contentContainerStyle={[s.inner, { paddingTop: isDesktop ? 24 : 16 }]}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={P.tangerine} />}
-      >
-        <View style={contentStyle}>
-          <View style={s.mainTitleWrap}>
-            <Text style={s.welcomeText}>Hello, {user?.full_name || 'Administrator'}</Text>
-            <Text style={s.dateText}>{formattedDate}</Text>
-            <Text style={s.mainDashboardTitle}>Library Dashboard</Text>
-          </View>
+    <ScrollView
+      style={s.root} contentContainerStyle={[s.inner, { paddingTop: isDesktop ? 24 : 16 }]}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={P.tangerine} />}
+    >
+      <View style={contentStyle}>
+        <View style={s.mainTitleWrap}>
+          <Text style={s.welcomeText}>Hello, {user?.full_name || 'Administrator'}</Text>
+          <Text style={s.dateText}>{formattedDate}</Text>
+          <Text style={s.mainDashboardTitle}>Library Dashboard</Text>
+        </View>
 
-          <View style={s.cardFlexContainer}>
-            <StatCard label="Active Loans" value={stats?.active_loans} icon="swap-horizontal" accent={P.brass} cardBg="#FCFAEE" accentText="#000" labelColor={P.textMain} showBottomTag tagText="ACTIVE LOANS" onPress={nav('Loans')} />
-            <StatCard label="Total Books" value={stats?.total_books} icon="book" accent={P.tangerine} cardBg="#1F150C" accentText="#fff" labelColor={P.parchmentDark} showBottomTag tagText="ALL BOOKS" onPress={nav('Books')} />
-            <StatCard label="Pending Requests" value={stats?.pending_borrow_requests} icon="hand-left" accent={P.burntOrange} cardBg="#FCFAEE" accentText="#000" labelColor={P.textMain} showBottomTag tagText="BORROW REQUESTS" onPress={nav('BorrowRequests')} />
-          </View>
+        {/* ── Top stat cards — Balanced 4-card matrix layout ── */}
+        <View style={s.cardFlexContainer}>
+          <StatCard
+            label="Active Loans"    value={stats?.active_loans}
+            icon="swap-horizontal"  accent={P.brass}        cardBg="#FCFAEE"
+            accentText="#000"       labelColor={P.textMain}
+            showBottomTag tagText="ACTIVE LOANS"
+            onPress={nav('Loans')}
+          />
+          <StatCard
+            label="Total Books"     value={stats?.total_books}
+            icon="book"             accent={P.tangerine}    cardBg="#1F150C"
+            accentText="#fff"       labelColor={P.parchmentDark}
+            showBottomTag tagText="ALL BOOKS"
+            onPress={nav('Books')}
+          />
+          <StatCard
+            label="Borrow Requests" value={stats?.pending_borrow_requests}
+            icon="hand-left"        accent={P.burntOrange}  cardBg="#FCFAEE"
+            accentText="#000"       labelColor={P.textMain}
+            showBottomTag tagText="BORROW REQUESTS"
+            onPress={nav('BorrowRequests')}
+          />
+          <StatCard
+            label="Pending Returns" value={stats?.pending_returns}
+            icon="return-down-back" accent={P.amber}        cardBg="#1F150C"
+            accentText="#fff"       labelColor={P.parchmentDark}
+            showBottomTag tagText="PENDING RETURNS"
+            onPress={nav('Loans')}
+          />
+        </View>
 
-          <Text style={s.sectionLabel}>QUICK ACTIONS</Text>
-          <View style={s.panel}>
-            <View style={s.panelHeader}>
-              <Ionicons name="compass" size={14} color={P.brass} />
-              <Text style={s.panelHeaderTxt}>Management Desks</Text>
-            </View>
-            <View style={s.gridInPanel}>
-              {tileRows.map((row, ri) => (
-                <View key={ri} style={[s.gridRow, { gap: 8 }]}>
-                  {row.map(({ label, screen, icon, count }) => (
-                    <QuickTile key={screen} label={label} icon={icon} count={count} onPress={nav(screen as keyof AdminStackParamList)} />
-                  ))}
-                </View>
-              ))}
-            </View>
+        <Text style={s.sectionLabel}>QUICK ACTIONS</Text>
+        <View style={s.panel}>
+          <View style={s.panelHeader}>
+            <Ionicons name="compass" size={14} color={P.brass} />
+            <Text style={s.panelHeaderTxt}>Management Desks</Text>
           </View>
-
-          <Text style={s.sectionLabel}>RECENT ACTIVITIES</Text>
-          <View style={s.panel}>
-            <View style={s.panelHeader}>
-              <Ionicons name="journal" size={14} color={P.brass} />
-              <Text style={s.panelHeaderTxt}>Recents</Text>
-            </View>
-            {activity.length === 0 ? (
-              <View style={s.emptyState}>
-                <Text style={s.emptyTxt}>0</Text>
-                <Text style={s.emptySubTxt}>No Loans</Text>
+          <View style={s.gridInPanel}>
+            {tileRows.map((row, ri) => (
+              <View key={ri} style={[s.gridRow, { gap: 8 }]}>
+                {row.map(({ label, screen, icon, count }) => (
+                  <QuickTile key={screen} label={label} icon={icon} count={count} onPress={nav(screen as keyof AdminStackParamList)} />
+                ))}
               </View>
-            ) : (
-              activity.map((item, idx) => <ActivityRow key={idx} item={item} last={idx === activity.length - 1} />)
-            )}
-          </View>
-
-          <Text style={s.sectionLabel}>MORE QUICK ACTIONS</Text>
-          <View style={s.panel}>
-            <View style={s.panelHeader}>
-              <Ionicons name="analytics" size={14} color={P.brass} />
-              <Text style={s.panelHeaderTxt}>Secondary Quick Actions</Text>
-            </View>
-            <View style={s.ledgerContainer}>
-              <LedgerStatRow label="Available Books" value={stats?.available_books ?? 0} icon="checkmark-circle-outline" color={P.success} onPress={nav('Books')} />
-              <LedgerStatRow label="Overdue Item Loans" value={stats?.overdue_loans ?? 0} icon="alert-circle-outline" color={P.danger} onPress={nav('Loans')} />
-              <LedgerStatRow label="Pending Active Returns" value={stats?.pending_returns ?? 0} icon="return-down-back-outline" color={P.amber} onPress={nav('Loans')} />
-              <LedgerStatRow label="Active Priority Reservations" value={stats?.active_reservations ?? 0} icon="bookmark-outline" color={P.mahogany} onPress={nav('Reservations')} />
-              <LedgerStatRow label="Unpaid Account Fines" value={unpaidFinesDisplay} icon="cash-outline" color={P.danger} onPress={nav('Fines')} />
-              <LedgerStatRow label="Registered Borrowers" value={stats?.total_members ?? 0} icon="people-outline" color={P.textMuted} last onPress={nav('Members')} />
-            </View>
+            ))}
           </View>
         </View>
-      </ScrollView>
-    </SidebarLayout>
+
+        <Text style={s.sectionLabel}>RECENT ACTIVITIES</Text>
+        <View style={s.panel}>
+          <View style={s.panelHeader}>
+            <Ionicons name="journal" size={14} color={P.brass} />
+            <Text style={s.panelHeaderTxt}>Recents</Text>
+          </View>
+          {activity.length === 0 ? (
+            <View style={s.emptyState}>
+              <Text style={s.emptyTxt}>0</Text>
+              <Text style={s.emptySubTxt}>No recent activity</Text>
+            </View>
+          ) : (
+            activity.map((item, idx) => <ActivityRow key={idx} item={item} last={idx === activity.length - 1} />)
+          )}
+        </View>
+
+        <Text style={s.sectionLabel}>MORE QUICK ACTIONS</Text>
+        <View style={s.panel}>
+          <View style={s.panelHeader}>
+            <Ionicons name="analytics" size={14} color={P.brass} />
+            <Text style={s.panelHeaderTxt}>Secondary Quick Actions</Text>
+          </View>
+          <View style={s.ledgerContainer}>
+            <LedgerStatRow label="Available Books"              value={stats?.available_books ?? 0}   icon="checkmark-circle-outline" color={P.success}   onPress={nav('Books')} />
+            <LedgerStatRow label="Active Priority Reservations" value={stats?.active_reservations ?? 0} icon="bookmark-outline"        color={P.mahogany}  onPress={nav('Reservations')} />
+            <LedgerStatRow label="Unpaid Account Fines"         value={unpaidFinesDisplay}            icon="cash-outline"             color={P.danger}    onPress={nav('Fines')} />
+            <LedgerStatRow label="Overdue Library Loans"        value={stats?.overdue_loans ?? 0}     icon="alert-circle-outline"     color={P.danger}    onPress={nav('Loans')} />
+            <LedgerStatRow label="Registered Borrowers"         value={stats?.total_members ?? 0}     icon="people-outline"           color={P.textMuted} last onPress={nav('Members')} />
+          </View>
+        </View>
+      </View>
+    </ScrollView>
   );
 }
 
@@ -250,7 +270,7 @@ const s = StyleSheet.create({
   dateText: { fontSize: 11, fontWeight: '500', color: P.textMuted, opacity: 0.8, marginBottom: 6, marginTop: 1 },
   mainDashboardTitle: { fontSize: 28, fontFamily: DISPLAY_FONT, color: P.espresso },
   cardFlexContainer: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, gap: 12, marginBottom: 16 },
-  statCard: { flex: 1, minWidth: 200, borderRadius: 8, padding: 16, borderWidth: 1, borderColor: 'rgba(41,29,21,0.15)', justifyContent: 'space-between', position: 'relative', overflow: 'hidden' },
+  statCard: { flex: 1, minWidth: 160, borderRadius: 8, padding: 16, borderWidth: 1, borderColor: 'rgba(41,29,21,0.15)', justifyContent: 'space-between', position: 'relative', overflow: 'hidden' },
   statCardHover: { transform: [{ translateY: -4 }], shadowColor: '#2D1F10', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 4 },
   statRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 },
   statCardHeaderLabel: { fontSize: 12, fontWeight: '600', textTransform: 'capitalize', opacity: 0.8 },

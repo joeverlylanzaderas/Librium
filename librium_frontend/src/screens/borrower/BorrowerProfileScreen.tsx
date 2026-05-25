@@ -3,7 +3,9 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   Alert, ActivityIndicator, TextInput, Modal,
+  Platform, Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { getMe, updateMe, changePassword } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { C, Row } from '../../components/UI';
@@ -16,6 +18,7 @@ type Profile = {
   sex:          string | null;
   sex_display:  string | null;
   age:          number | null;
+  profile_picture: string | null;
 };
 
 type Me = {
@@ -30,7 +33,7 @@ type Me = {
 };
 
 export default function BorrowerProfileScreen() {
-  const { signOut } = useAuth();
+  const { signOut, refreshUser }      = useAuth();
   const [me, setMe]                   = useState<Me | null>(null);
   const [loading, setLoading]         = useState(true);
   const [saving, setSaving]           = useState(false);
@@ -51,6 +54,7 @@ export default function BorrowerProfileScreen() {
   const [newPw, setNewPw]             = useState('');
   const [confirmPw, setConfirmPw]     = useState('');
   const [changingPw, setChangingPw]   = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -60,7 +64,83 @@ export default function BorrowerProfileScreen() {
     finally { setLoading(false); }
   }, []);
 
+  const loadProfileData = useCallback(async () => {
+      try {
+        const data = await getMe();
+        setMe(data);
+      } catch (e) {
+        console.error("Failed fetching admin profile profile details:", e);
+      } finally {
+        setLoading(false);
+      }
+    }, []);
+
   useEffect(() => { load(); }, [load]);
+
+  const handlePickAvatar = async () => {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please allow access to your photo library to change your profile picture.');
+        return;
+      }
+  
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+  
+      if (result.canceled || !result.assets?.[0]) return;
+  
+      const asset = result.assets[0];
+      const fileInfo = {
+        uri: asset.uri,
+        type: asset.mimeType ?? 'image/jpeg',
+        name: asset.fileName ?? `avatar_${Date.now()}.jpg`,
+      };
+  
+      setUploadingAvatar(true);
+      try {
+        const formData = new FormData();
+  
+        if (Platform.OS === 'web') {
+          const responseBlob = await fetch(fileInfo.uri);
+          const fileBlob = await responseBlob.blob();
+          formData.append('file', fileBlob, fileInfo.name);
+        } else {
+          formData.append('file', {
+            uri: fileInfo.uri,
+            type: fileInfo.type,
+            name: fileInfo.name,
+          } as any);
+        }
+  
+        formData.append('upload_preset', 'librium_covers');
+        formData.append('cloud_name', 'dz5b4xsjy');
+  
+        const response = await fetch('https://api.cloudinary.com/v1_1/dz5b4xsjy/image/upload', {
+          method: 'POST',
+          body: formData,
+          headers: { 'Accept': 'application/json' },
+        });
+  
+        const responseText = await response.text();
+        if (!response.ok) throw new Error(`Upload failed (${response.status})`);
+  
+        const cloudData = JSON.parse(responseText);
+        if (!cloudData.secure_url) throw new Error('No URL returned from Cloudinary');
+  
+        await updateMe({ profile: { profile_picture: cloudData.secure_url } });
+        await loadProfileData();
+        await refreshUser({ profile_picture: cloudData.secure_url }); 
+      } catch (e: any) {
+        console.error('Avatar upload error:', e);
+        Alert.alert('Upload Failed', 'Could not update profile picture. Please try again.');
+      } finally {
+        setUploadingAvatar(false);
+      }
+    };
 
   const openEditModal = () => {
     if (!me) return;
@@ -146,11 +226,22 @@ export default function BorrowerProfileScreen() {
     <ScrollView style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ paddingBottom: 40 }}>
       {/* Avatar / header */}
       <View style={s.header}>
-        <View style={s.avatar}>
-          <Text style={s.avatarText}>
-            {me.full_name?.charAt(0)?.toUpperCase() ?? '?'}
-          </Text>
-        </View>
+        <TouchableOpacity onPress={handlePickAvatar} disabled={uploadingAvatar} style={s.avatarWrap}>
+          {uploadingAvatar ? (
+            <ActivityIndicator color={C.primary} />
+          ) : me.profile?.profile_picture ? (
+            <Image source={{ uri: me.profile.profile_picture }} style={s.avatarImage} />
+          ) : (
+            <View style={s.avatar}>
+              <Text style={s.avatarText}>
+                {me.full_name?.charAt(0)?.toUpperCase() ?? '?'}
+              </Text>
+            </View>
+          )}
+          <View style={s.avatarEditBadge}>
+            <Text style={{ color: '#fff', fontSize: 10 }}>✎</Text>
+          </View>
+        </TouchableOpacity>
         <Text style={s.name}>{me.full_name}</Text>
         <Text style={s.email}>{me.email}</Text>
         <View style={s.roleBadge}>
@@ -305,8 +396,11 @@ export default function BorrowerProfileScreen() {
 
 const s = StyleSheet.create({
   header:        { alignItems: 'center', paddingVertical: 28, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: C.border },
-  avatar:        { width: 72, height: 72, borderRadius: 36, backgroundColor: C.primary + '33', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  avatarText:    { color: C.primary, fontSize: 28, fontWeight: '800' },
+  avatarWrap:      { marginBottom: 10, position: 'relative', alignItems: 'center', justifyContent: 'center' },
+  avatar:          { width: 72, height: 72, borderRadius: 36, backgroundColor: C.primary + '33', alignItems: 'center', justifyContent: 'center' },
+  avatarImage:     { width: 72, height: 72, borderRadius: 36 },
+  avatarText:      { color: C.primary, fontSize: 28, fontWeight: '800' },
+  avatarEditBadge: { position: 'absolute', bottom: 0, right: 0, backgroundColor: C.primary, borderRadius: 10, width: 20, height: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: C.bg },
   name:          { color: C.text, fontSize: 18, fontWeight: '800', marginBottom: 2 },
   email:         { color: C.sub, fontSize: 13, marginBottom: 8 },
   roleBadge:     { backgroundColor: C.primary + '22', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4, borderWidth: 1, borderColor: C.primary + '55' },

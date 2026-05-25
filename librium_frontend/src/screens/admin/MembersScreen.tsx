@@ -7,7 +7,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { getUsers, updateUser, deleteUser, createUser } from '../../services/api';
 import { Card, Empty, Loading, Btn } from '../../components/UI';
-import SidebarLayout from '../../components/SidebarLayout';
+// Removed SidebarLayout import since layout is managed globally
 import { Fonts } from '../../constants/theme';
 
 type User = {
@@ -178,150 +178,148 @@ export default function MembersScreen() {
   if (loading) return <Loading />;
 
   return (
-    <SidebarLayout currentScreen="Members">
-      <View style={s.root}>
-        <ScrollView
-          contentContainerStyle={[s.inner, { padding: width > 768 ? 24 : 16 }]}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => { setRefreshing(true); load(); }}
-              tintColor="#281711"
+    <View style={s.root}>
+      <ScrollView
+        contentContainerStyle={[s.inner, { padding: width > 768 ? 24 : 16 }]}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => { setRefreshing(true); load(); }}
+            tintColor="#281711"
+          />
+        }
+      >
+        <View style={s.headerContainer}>
+          <Text style={s.headerTitle}>Librium Users Registry ({filtered.length})</Text>
+          <TouchableOpacity style={s.addRegistryBtn} onPress={openCreateModal} activeOpacity={0.7}>
+            <Feather name="user-plus" size={13} color="#F4EFE0" style={{ marginRight: 6 }} />
+            <Text style={s.addRegistryTxt}>ADD ACCOUNT</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={s.toolbar}>
+          <View style={s.searchWrap}>
+            <Feather name="search" size={14} color="#A1927F" style={{ marginRight: 8 }} />
+            <TextInput
+              style={s.searchInput}
+              placeholder="Query database by profile names, keys, credentials..."
+              placeholderTextColor="#A1927F"
+              value={search}
+              onChangeText={setSearch}
             />
-          }
-        >
-          <View style={s.headerContainer}>
-            <Text style={s.headerTitle}>Librium Users Registry ({filtered.length})</Text>
-            <TouchableOpacity style={s.addRegistryBtn} onPress={openCreateModal} activeOpacity={0.7}>
-              <Feather name="user-plus" size={13} color="#F4EFE0" style={{ marginRight: 6 }} />
-              <Text style={s.addRegistryTxt}>ADD ACCOUNT</Text>
-            </TouchableOpacity>
+            {search.length > 0 && (
+              <TouchableOpacity onPress={() => setSearch('')}>
+                <Feather name="x" size={14} color="#A1927F" />
+              </TouchableOpacity>
+            )}
           </View>
 
-          <View style={s.toolbar}>
-            <View style={s.searchWrap}>
-              <Feather name="search" size={14} color="#A1927F" style={{ marginRight: 8 }} />
-              <TextInput
-                style={s.searchInput}
-                placeholder="Query database by profile names, keys, credentials..."
-                placeholderTextColor="#A1927F"
-                value={search}
-                onChangeText={setSearch}
-              />
-              {search.length > 0 && (
-                <TouchableOpacity onPress={() => setSearch('')}>
-                  <Feather name="x" size={14} color="#A1927F" />
-                </TouchableOpacity>
-              )}
-            </View>
-
-            <View style={s.filterRow}>
-              {(['all', 'admin', 'librarian', 'member'] as const).map((r) => (
-                <TouchableOpacity
-                  key={r}
-                  style={[s.filterTab, roleFilter === r && s.filterTabActive]}
-                  onPress={() => setRoleFilter(r)}
-                >
-                  <Text style={[s.filterTxt, roleFilter === r && s.filterTxtActive]}>
-                    {r === 'all' ? 'All Records' : r.charAt(0).toUpperCase() + r.slice(1)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+          <View style={s.filterRow}>
+            {([ 'all', 'admin', 'librarian', 'member' ] as const).map((r) => (
+              <TouchableOpacity
+                key={r}
+                style={[s.filterTab, roleFilter === r && s.filterTabActive]}
+                onPress={() => setRoleFilter(r)}
+              >
+                <Text style={[s.filterTxt, roleFilter === r && s.filterTxtActive]}>
+                  {r === 'all' ? 'All Records' : r.charAt(0).toUpperCase() + r.slice(1)}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
+        </View>
 
-          {filtered.length === 0 && <Empty text="No matching user records resolved in registry archives." />}
+        {filtered.length === 0 && <Empty text="No matching user records resolved in registry archives." />}
 
-          <View style={s.gridContainer}>
-            {filtered.map((u) => {
-              const isExpanded = expandedId === u.id;
-              const isMutating = mutatingId === u.id;
-              const theme = ROLE_THEME[u.role] || ROLE_THEME.member;
+        <View style={s.gridContainer}>
+          {filtered.map((u) => {
+            const isExpanded = expandedId === u.id;
+            const isMutating = mutatingId === u.id;
+            const theme = ROLE_THEME[u.role] || ROLE_THEME.member;
 
-              return (
-                <Card key={u.id} style={{ ...s.customCard, width: cardW }}>
-                  <View style={s.cardContent}>
-                    <View style={s.identityBlock}>
-                      <View style={s.identityHeader}>
-                        <View style={[s.avatarCircle, { backgroundColor: theme.bg, borderColor: theme.border }]}>
-                          <Text style={[s.avatarText, { color: theme.text }]}>
-                            {u.full_name ? u.full_name.charAt(0).toUpperCase() : '?'}
-                          </Text>
-                        </View>
-                        <View style={s.statusPillStack}>
-                          <View style={[s.rolePill, { backgroundColor: theme.bg, borderColor: theme.border }]}>
-                            <Text style={[s.roleText, { color: theme.text }]}>{u.role.toUpperCase()}</Text>
-                          </View>
-                        </View>
+            return (
+              <Card key={u.id} style={{ ...s.customCard, width: cardW }}>
+                <View style={s.cardContent}>
+                  <View style={s.identityBlock}>
+                    <View style={s.identityHeader}>
+                      <View style={[s.avatarCircle, { backgroundColor: theme.bg, borderColor: theme.border }]}>
+                        <Text style={[s.avatarText, { color: theme.text }]}>
+                          {u.full_name ? u.full_name.charAt(0).toUpperCase() : '?'}
+                        </Text>
                       </View>
-                      <Text style={s.userName} numberOfLines={1}>{u.full_name}</Text>
-                      <View style={s.infoDetailLine}>
-                        <Feather name="mail" size={11} color="#A1927F" />
-                        <Text style={s.infoDetailText} numberOfLines={1}>{u.email}</Text>
-                      </View>
-                      <View style={s.infoDetailLine}>
-                        <Feather name="at-sign" size={11} color="#A1927F" />
-                        <Text style={s.infoDetailText} numberOfLines={1}>{u.username}</Text>
+                      <View style={s.statusPillStack}>
+                        <View style={[s.rolePill, { backgroundColor: theme.bg, borderColor: theme.border }]}>
+                          <Text style={[s.roleText, { color: theme.text }]}>{u.role.toUpperCase()}</Text>
+                        </View>
                       </View>
                     </View>
+                    <Text style={s.userName} numberOfLines={1}>{u.full_name}</Text>
+                    <View style={s.infoDetailLine}>
+                      <Feather name="mail" size={11} color="#A1927F" />
+                      <Text style={s.infoDetailText} numberOfLines={1}>{u.email}</Text>
+                    </View>
+                    <View style={s.infoDetailLine}>
+                      <Feather name="at-sign" size={11} color="#A1927F" />
+                      <Text style={s.infoDetailText} numberOfLines={1}>{u.username}</Text>
+                    </View>
+                  </View>
 
-                    <TouchableOpacity
-                      style={s.drawerToggle}
-                      activeOpacity={0.7}
-                      onPress={() => setExpandedId(isExpanded ? null : u.id)}
-                    >
-                      <Text style={s.drawerToggleText}>
-                        {isExpanded ? 'Collapse Details' : 'View Complete Record Profile'}
-                      </Text>
-                      <Feather name={isExpanded ? "chevron-up" : "chevron-down"} size={13} color="#513E2F" />
-                    </TouchableOpacity>
+                  <TouchableOpacity
+                    style={s.drawerToggle}
+                    activeOpacity={0.7}
+                    onPress={() => setExpandedId(isExpanded ? null : u.id)}
+                  >
+                    <Text style={s.drawerToggleText}>
+                      {isExpanded ? 'Collapse Details' : 'View Complete Record Profile'}
+                    </Text>
+                    <Feather name={isExpanded ? "chevron-up" : "chevron-down"} size={13} color="#513E2F" />
+                  </TouchableOpacity>
 
-                    {isExpanded && (
-                      <View style={s.expandedDrawer}>
-                        <View style={s.drawerMetricsGrid}>
-                          <View style={s.metricRow}>
-                            <Text style={s.metricLabel}>Date Added</Text>
-                            <Text style={s.metricValue}>{new Date(u.date_joined).toLocaleDateString()}</Text>
-                          </View>
-                          <View style={s.metricRow}>
-                            <Text style={s.metricLabel}>Sex</Text>
-                            <Text style={s.metricValue}>{u.profile?.sex ? (SEX_LABEL[u.profile.sex] ?? u.profile.sex) : '—'}</Text>
-                          </View>
-                          <View style={s.metricRow}>
-                            <Text style={s.metricLabel}>Contact Number</Text>
-                            <Text style={s.metricValue}>{u.profile?.phone_number ?? '—'}</Text>
-                          </View>
-                          <View style={s.metricRow}>
-                            <Text style={s.metricLabel}>Address</Text>
-                            <Text style={s.metricValue} numberOfLines={2}>{u.profile?.address ?? '—'}</Text>
-                          </View>
+                  {isExpanded && (
+                    <View style={s.expandedDrawer}>
+                      <View style={s.drawerMetricsGrid}>
+                        <View style={s.metricRow}>
+                          <Text style={s.metricLabel}>Date Added</Text>
+                          <Text style={s.metricValue}>{new Date(u.date_joined).toLocaleDateString()}</Text>
                         </View>
-
-                        <View style={s.drawerActionsLayout}>
-                          {isMutating ? (
-                            <ActivityIndicator size="small" color="#281711" style={s.loaderPadding} />
-                          ) : (
-                            <>
-                              <TouchableOpacity style={[s.utilityBtn, s.editBtn]} onPress={() => openEditModal(u)}>
-                                <Feather name="edit-3" size={11} color="#513E2F" />
-                                <Text style={s.editBtnText}>Modify Record</Text>
-                              </TouchableOpacity>
-                              <TouchableOpacity style={[s.utilityBtn, s.deleteBtn]} onPress={() => handleDelete(u)}>
-                                <Feather name="trash-2" size={11} color="#C53030" />
-                                <Text style={s.deleteBtnText}>Delete Account</Text>
-                              </TouchableOpacity>
-                            </>
-                          )}
+                        <View style={s.metricRow}>
+                          <Text style={s.metricLabel}>Sex</Text>
+                          <Text style={s.metricValue}>{u.profile?.sex ? (SEX_LABEL[u.profile.sex] ?? u.profile.sex) : '—'}</Text>
+                        </View>
+                        <View style={s.metricRow}>
+                          <Text style={s.metricLabel}>Contact Number</Text>
+                          <Text style={s.metricValue}>{u.profile?.phone_number ?? '—'}</Text>
+                        </View>
+                        <View style={s.metricRow}>
+                          <Text style={s.metricLabel}>Address</Text>
+                          <Text style={s.metricValue} numberOfLines={2}>{u.profile?.address ?? '—'}</Text>
                         </View>
                       </View>
-                    )}
-                  </View>
-                </Card>
-              );
-            })}
-          </View>
-        </ScrollView>
-      </View>
+
+                      <View style={s.drawerActionsLayout}>
+                        {isMutating ? (
+                          <ActivityIndicator size="small" color="#281711" style={s.loaderPadding} />
+                        ) : (
+                          <>
+                            <TouchableOpacity style={[s.utilityBtn, s.editBtn]} onPress={() => openEditModal(u)}>
+                              <Feather name="edit-3" size={11} color="#513E2F" />
+                              <Text style={s.editBtnText}>Modify Record</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[s.utilityBtn, s.deleteBtn]} onPress={() => handleDelete(u)}>
+                              <Feather name="trash-2" size={11} color="#C53030" />
+                              <Text style={s.deleteBtnText}>Delete Account</Text>
+                            </TouchableOpacity>
+                          </>
+                        )}
+                      </View>
+                    </View>
+                  )}
+                </View>
+              </Card>
+            );
+          })}
+        </View>
+      </ScrollView>
 
       <Modal animationType="fade" transparent visible={modalOpen} onRequestClose={() => setModalOpen(false)}>
         <View style={s.modalOverlay}>
@@ -350,7 +348,7 @@ export default function MembersScreen() {
               <View>
                 <Text style={s.fieldLabel}>Authorization Role:</Text>
                 <View style={s.roleSelectorRow}>
-                  {(['member', 'librarian', 'admin'] as const).map((r) => (
+                  {([ 'member', 'librarian', 'admin' ] as const).map((r) => (
                     <TouchableOpacity key={r} style={[s.roleSelectBox, formRole === r && s.roleSelectBoxActive]} onPress={() => setFormRole(r)}>
                       <Text style={[s.roleSelectTxt, formRole === r && s.roleSelectTxtActive]}>{r.toUpperCase()}</Text>
                     </TouchableOpacity>
@@ -367,7 +365,7 @@ export default function MembersScreen() {
           </View>
         </View>
       </Modal>
-    </SidebarLayout>
+    </View>
   );
 }
 

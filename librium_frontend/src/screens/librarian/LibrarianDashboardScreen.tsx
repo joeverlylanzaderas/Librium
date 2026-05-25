@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, RefreshControl, useWindowDimensions
+  StyleSheet, RefreshControl, useWindowDimensions, Platform
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -10,7 +10,6 @@ import { Feather } from '@expo/vector-icons';
 import { getDashboard } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { Card, Loading } from '../../components/UI';
-import SidebarLayout from '../../components/SidebarLayout';
 import { Fonts } from '../../constants/theme';
 import { LibrarianStackParamList } from '../../navigation/AppNavigator';
 
@@ -29,15 +28,65 @@ type Stats = {
   total_members:           number;
 };
 
+const P = {
+  mahogany: '#412D15', espresso: '#1F150C', oxblood: '#541A1A', amber: '#F69D39', brass: '#FFC85C',
+  tangerine: '#FF9D00', burntOrange: '#FF7D29', parchment: '#FBF5DD', parchmentDark: '#EFE9CE',
+  pureWhite: '#FFFFFF', textMain: '#2D1F10', textMuted: '#706251', success: '#3D5A45', danger: '#8A2B2B',
+};
+
+const SERIF = Platform.select({ ios: 'Georgia', android: 'serif' });
+const DISPLAY = 'Literata-Bold';
+
 const QUICK_ACTIONS = [
-  { label: 'Borrow Requests', screen: 'LibrarianBorrowRequests', icon: 'clipboard' as const, color: '#D97706', bg: '#FEF3C7' },
-  { label: 'Issue Loan',      screen: 'LibrarianLoans',          icon: 'book-open' as const, color: '#281711', bg: '#EFECE6' },
-  { label: 'Returns Verification', screen: 'LibrarianLoans',     icon: 'corner-down-left' as const, color: '#137333', bg: '#E6F4EA' },
-  { label: 'Fines Tracking',  screen: 'LibrarianFines',          icon: 'dollar-sign' as const, color: '#A83232', bg: '#FCE8E6' },
-  { label: 'Books Catalog',   screen: 'LibrarianBooks',          icon: 'layers' as const, color: '#7C3AED', bg: '#EDE9FE' },
-  { label: 'Members Directory', screen: 'LibrarianMembers',        icon: 'users' as const, color: '#0369A1', bg: '#E0F2FE' },
-  { label: 'Reservations Ledger', screen: 'LibrarianReservations', icon: 'bookmark' as const, color: '#BE185D', bg: '#FCE7F3' },
+  { label: 'Borrow Requests',      screen: 'LibrarianBorrowRequests', icon: 'clipboard' as const,        color: P.amber   },
+  { label: 'Issue Loan',           screen: 'LibrarianLoans',          icon: 'book-open' as const,         color: P.mahogany },
+  { label: 'Returns Verification', screen: 'LibrarianLoans',          icon: 'corner-down-left' as const,  color: P.success  },
+  { label: 'Fines Tracking',       screen: 'LibrarianFines',          icon: 'dollar-sign' as const,       color: P.danger   },
+  { label: 'Books Catalog',        screen: 'LibrarianBooks',          icon: 'layers' as const,            color: '#7C3AED'  },
+  { label: 'Members Directory',    screen: 'LibrarianMembers',        icon: 'users' as const,             color: '#0369A1'  },
+  { label: 'Reservations Ledger',  screen: 'LibrarianReservations',   icon: 'bookmark' as const,          color: '#BE185D'  },
 ] as const;
+
+function QuickTile({ label, icon, color, count, onPress }: {
+  label: string; icon: any; color: string; count?: number; onPress: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <TouchableOpacity
+      style={[s.tile, hovered && s.tileHover]} onPress={onPress} activeOpacity={0.75}
+      {...(Platform.OS === 'web' ? { onMouseEnter: () => setHovered(true), onMouseLeave: () => setHovered(false) } : {})}
+    >
+      {!!count && (
+        <View style={s.tileBadge}><Text style={s.tileBadgeText}>{count > 99 ? '99+' : count}</Text></View>
+      )}
+      <View style={s.tileIconCircle}>
+        <Feather name={icon} size={16} color={color} />
+      </View>
+      <Text style={s.tileLabel}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
+function LedgerRow({ label, value, icon, color, last, onPress }: {
+  label: string; value: string | number; icon: any; color: string; last?: boolean; onPress: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <TouchableOpacity
+      style={[s.ledgerRow, hovered && s.ledgerHover, !last && s.ledgerBorder]} onPress={onPress} activeOpacity={0.7}
+      {...(Platform.OS === 'web' ? { onMouseEnter: () => setHovered(true), onMouseLeave: () => setHovered(false) } : {})}
+    >
+      <View style={s.ledgerLeft}>
+        <Feather name={icon} size={15} color={color} style={{ width: 20 }} />
+        <Text style={s.ledgerLabel}>{label}</Text>
+      </View>
+      <View style={s.ledgerRight}>
+        <Text style={[s.ledgerValue, { color }]}>{value}</Text>
+        <Feather name="chevron-right" size={13} color={P.textMuted} />
+      </View>
+    </TouchableOpacity>
+  );
+}
 
 export default function LibrarianDashboardScreen() {
   const { width } = useWindowDimensions();
@@ -63,290 +112,182 @@ export default function LibrarianDashboardScreen() {
 
   if (loading) return <Loading />;
 
-  const statCards = [
-    { label: 'Total Volumes', value: stats?.total_books, icon: 'book' as const, color: '#7C3AED', border: '#DDD6FE' },
-    { label: 'Available Stacks', value: stats?.available_books, icon: 'check-circle' as const, color: '#137333', border: '#B7DFC4' },
-    { label: 'Active Circulation', value: stats?.active_loans, icon: 'activity' as const, color: '#281711', border: '#DCD4C4' },
-    { label: 'Overdue Excursions', value: stats?.overdue_loans, icon: 'alert-triangle' as const, color: '#A83232', border: '#F5C2BC' },
-    { label: 'Pending Requests', value: stats?.pending_borrow_requests, icon: 'git-pull-request' as const, color: '#D97706', border: '#FCD34D' },
-    { label: 'Pending Returns', value: stats?.pending_returns, icon: 'refresh-cw' as const, color: '#C2410C', border: '#FFD8A8' },
-    { label: 'Unresolved Fines', value: stats?.unpaid_fines, icon: 'frown' as const, color: '#B45309', border: '#FDE68A' },
-    { label: 'Active Reservations', value: stats?.active_reservations, icon: 'tag' as const, color: '#0369A1', border: '#BAE6FD' },
-  ];
-
-  // Grid sizing helpers
-  const statCols = width > 1024 ? 4 : width > 600 ? 2 : 1;
-  const actionCols = width > 1024 ? 4 : width > 768 ? 3 : width > 480 ? 2 : 1;
-  const gap = 14;
+  const isDesktop = width > 768;
+  const tileCols  = width >= 640 ? 4 : 4; // always 4-col grid for 7 actions (last row partial)
+  const pad = isDesktop ? 16 : 16;
+  const contentStyle = width > 1200 ? { maxWidth: 1200, alignSelf: 'center' as const, width: '100%' as any } : {};
+  const formattedDate = new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   return (
-    <SidebarLayout currentScreen="Dashboard">
-      <View style={s.root}>
-        <ScrollView
-          contentContainerStyle={[s.inner, { padding: width > 768 ? 24 : 16 }]}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor="#281711" />
-          }
-        >
-          {/* ── Document Structural Header ── */}
-          <View style={s.headerContainer}>
-            <View>
-              <Text style={s.greetingText}>SYSTEM WORKSPACE ARCHIVE</Text>
-              <Text style={s.nameTitle}>Salutations, {user?.full_name ?? user?.email}</Text>
+    <ScrollView
+      style={s.root}
+      contentContainerStyle={[s.inner, { paddingTop: isDesktop ? 24 : 16 }]}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={P.tangerine} />
+      }
+    >
+      <View style={contentStyle}>
+
+        {/* ── Header ── */}
+        <View style={s.headerWrap}>
+          <Text style={s.welcomeText}>Hello, {user?.full_name ?? user?.email}</Text>
+          <Text style={s.dateText}>{formattedDate}</Text>
+          <Text style={s.dashTitle}>Librarian Dashboard</Text>
+        </View>
+
+        {/* ── Hero Stat Cards ── */}
+        <View style={s.heroRow}>
+          <TouchableOpacity style={[s.heroCard, { backgroundColor: '#FCFAEE' }]} onPress={() => navigation.navigate('LibrarianLoans')} activeOpacity={0.8}>
+            <View style={s.heroInner}>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.heroCardLabel, { color: P.textMain }]}>Active Loans</Text>
+                <Text style={[s.heroVal, { color: P.espresso }]}>{stats?.active_loans ?? 0}</Text>
+              </View>
+              <View style={s.heroIconWrap}><Feather name="activity" size={18} color={P.mahogany} /></View>
             </View>
-            <View style={s.badgeContainer}>
-              <Feather name="shield" size={12} color="#706251" style={{ marginRight: 5 }} />
-              <Text style={s.badgeText}>LIBRARIAN CONSOLE</Text>
+            <View style={[s.heroTag, { backgroundColor: P.brass }]}>
+              <Text style={s.heroTagText}>CIRCULATION</Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
-          {/* ── Urgent System Alerts Banner Matrix ── */}
-          {((stats?.overdue_loans ?? 0) > 0 || (stats?.pending_borrow_requests ?? 0) > 0) && (
-            <View style={s.alertSectionStack}>
-              {(stats?.overdue_loans ?? 0) > 0 && (
-                <TouchableOpacity style={[s.alertBanner, s.dangerAlert]} activeOpacity={0.8} onPress={() => navigation.navigate('LibrarianLoans')}>
-                  <View style={s.alertIconContext}>
-                    <Feather name="alert-circle" size={14} color="#A83232" />
-                    <Text style={s.dangerAlertTxt}>
-                      Attention Required: {stats?.overdue_loans} volumes logged as overdue. Review outstanding obligations.
-                    </Text>
-                  </View>
-                  <Feather name="arrow-right" size={13} color="#A83232" />
-                </TouchableOpacity>
-              )}
-
-              {(stats?.pending_borrow_requests ?? 0) > 0 && (
-                <TouchableOpacity style={[s.alertBanner, s.warningAlert]} activeOpacity={0.8} onPress={() => navigation.navigate('LibrarianBorrowRequests')}>
-                  <View style={s.alertIconContext}>
-                    <Feather name="file-text" size={14} color="#B45309" />
-                    <Text style={s.warningAlertTxt}>
-                      Pending Verification: {stats?.pending_borrow_requests} borrow workflows awaiting programmatic authorization.
-                    </Text>
-                  </View>
-                  <Feather name="arrow-right" size={13} color="#B45309" />
-                </TouchableOpacity>
-              )}
+          <TouchableOpacity style={[s.heroCard, { backgroundColor: P.espresso }]} onPress={() => navigation.navigate('LibrarianBooks')} activeOpacity={0.8}>
+            <View style={s.heroInner}>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.heroCardLabel, { color: P.parchmentDark }]}>Total Books</Text>
+                <Text style={[s.heroVal, { color: P.pureWhite }]}>{stats?.total_books ?? 0}</Text>
+              </View>
+              <View style={s.heroIconWrap}><Feather name="book" size={18} color={P.brass} /></View>
             </View>
-          )}
+            <View style={[s.heroTag, { backgroundColor: P.tangerine }]}>
+              <Text style={s.heroTagText}>ALL VOLUMES</Text>
+            </View>
+          </TouchableOpacity>
 
-          {/* ── Metric Registry Grid Section ── */}
-          <Text style={s.sectionTitle}>ARCHIVAL DATA REGISTRY</Text>
-          <View style={s.gridContainer}>
-            {statCards.map((card) => {
-              const cardW = `calc(${100 / statCols}% - ${(gap * (statCols - 1)) / statCols}px)` as any;
-              return (
-                <Card key={card.label} style={{ ...s.statCard, width: cardW }}>
-                  <View style={s.statCardHeader}>
-                    <Text style={s.statLabel}>{card.label.toUpperCase()}</Text>
-                    <View style={[s.iconBox, { borderColor: card.border }]}>
-                      <Feather name={card.icon} size={12} color={card.color} />
-                    </View>
-                  </View>
-                  <Text style={[s.statValue, { color: card.color }]}>{card.value ?? 0}</Text>
-                </Card>
-              );
-            })}
+          <TouchableOpacity style={[s.heroCard, { backgroundColor: '#FCFAEE' }]} onPress={() => navigation.navigate('LibrarianBorrowRequests')} activeOpacity={0.8}>
+            <View style={s.heroInner}>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.heroCardLabel, { color: P.textMain }]}>Pending Requests</Text>
+                <Text style={[s.heroVal, { color: P.espresso }]}>{stats?.pending_borrow_requests ?? 0}</Text>
+              </View>
+              <View style={s.heroIconWrap}><Feather name="clipboard" size={18} color={P.mahogany} /></View>
+            </View>
+            <View style={[s.heroTag, { backgroundColor: P.burntOrange }]}>
+              <Text style={s.heroTagText}>BORROW REQUESTS</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* ── Alerts ── */}
+        {((stats?.overdue_loans ?? 0) > 0 || (stats?.pending_borrow_requests ?? 0) > 0) && (
+          <View style={{ paddingHorizontal: pad, gap: 8, marginBottom: 8 }}>
+            {(stats?.overdue_loans ?? 0) > 0 && (
+              <TouchableOpacity style={[s.alert, s.alertDanger]} onPress={() => navigation.navigate('LibrarianLoans')} activeOpacity={0.8}>
+                <Feather name="alert-circle" size={13} color={P.danger} />
+                <Text style={[s.alertText, { color: P.danger }]} numberOfLines={1}>
+                  {stats?.overdue_loans} overdue volumes need review
+                </Text>
+                <Feather name="chevron-right" size={13} color={P.danger} />
+              </TouchableOpacity>
+            )}
+            {(stats?.pending_borrow_requests ?? 0) > 0 && (
+              <TouchableOpacity style={[s.alert, s.alertWarn]} onPress={() => navigation.navigate('LibrarianBorrowRequests')} activeOpacity={0.8}>
+                <Feather name="file-text" size={13} color="#B45309" />
+                <Text style={[s.alertText, { color: '#B45309' }]} numberOfLines={1}>
+                  {stats?.pending_borrow_requests} borrow requests awaiting approval
+                </Text>
+                <Feather name="chevron-right" size={13} color="#B45309" />
+              </TouchableOpacity>
+            )}
           </View>
+        )}
 
-          {/* ── System Core Action Routing Array ── */}
-          <Text style={[s.sectionTitle, { marginTop: 28 }]}>ADMINISTRATIVE QUICK ACTIONS</Text>
-          <View style={s.gridContainer}>
-            {QUICK_ACTIONS.map((a) => {
-              const actionW = `calc(${100 / actionCols}% - ${(gap * (actionCols - 1)) / actionCols}px)` as any;
-              return (
-                <TouchableOpacity
-                  key={a.label}
-                  style={[s.actionBtn, { width: actionW }]}
-                  onPress={() => navigation.navigate(a.screen as any)}
-                  activeOpacity={0.7}
-                >
-                  <View style={[s.actionIconBlock, { backgroundColor: a.bg }]}>
-                    <Feather name={a.icon} size={16} color={a.color} />
-                  </View>
-                  <View style={s.actionTextFrame}>
-                    <Text style={s.actionLabel}>{a.label}</Text>
-                    <Text style={s.actionSubLabel}>Launch Registry →</Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
+        {/* ── Quick Actions ── */}
+        <Text style={s.sectionLabel}>QUICK ACTIONS</Text>
+        <View style={s.panel}>
+          <View style={s.panelHeader}>
+            <Feather name="zap" size={13} color={P.brass} />
+            <Text style={s.panelHeaderTxt}>Management Desks</Text>
           </View>
+          <View style={s.tileGrid}>
+            {QUICK_ACTIONS.map((a) => (
+              <QuickTile
+                key={a.label} label={a.label} icon={a.icon} color={a.color}
+                count={a.screen === 'LibrarianBorrowRequests' ? stats?.pending_borrow_requests : a.screen === 'LibrarianLoans' ? (stats?.overdue_loans || undefined) : undefined}
+                onPress={() => navigation.navigate(a.screen as any)}
+              />
+            ))}
+          </View>
+        </View>
 
-        </ScrollView>
+        {/* ── Secondary Stats Ledger ── */}
+        <Text style={s.sectionLabel}>OVERVIEW</Text>
+        <View style={s.panel}>
+          <View style={s.panelHeader}>
+            <Feather name="bar-chart-2" size={13} color={P.brass} />
+            <Text style={s.panelHeaderTxt}>Metrics</Text>
+          </View>
+          <View style={{ paddingVertical: 4 }}>
+            <LedgerRow label="Available Books"       value={stats?.available_books ?? 0}   icon="check-circle"    color={P.success}    onPress={() => navigation.navigate('LibrarianBooks')} />
+            <LedgerRow label="Overdue Loans"         value={stats?.overdue_loans ?? 0}      icon="alert-triangle"  color={P.danger}     onPress={() => navigation.navigate('LibrarianLoans')} />
+            <LedgerRow label="Pending Returns"       value={stats?.pending_returns ?? 0}    icon="refresh-cw"      color={P.amber}      onPress={() => navigation.navigate('LibrarianLoans')} />
+            <LedgerRow label="Active Reservations"   value={stats?.active_reservations ?? 0} icon="bookmark"       color={P.mahogany}   onPress={() => navigation.navigate('LibrarianReservations')} />
+            <LedgerRow label="Unresolved Fines"      value={stats?.unpaid_fines ?? 0}       icon="dollar-sign"     color={P.danger}     onPress={() => navigation.navigate('LibrarianFines')} />
+            <LedgerRow label="Total Members"         value={stats?.total_members ?? 0}      icon="users"           color={P.textMuted}  last onPress={() => navigation.navigate('LibrarianMembers')} />
+          </View>
+        </View>
+
       </View>
-    </SidebarLayout>
+    </ScrollView>
   );
 }
 
 const s = StyleSheet.create({
-  root:  { flex: 1, backgroundColor: '#ECE7D1' },
+  root:  { flex: 1, backgroundColor: '#FCFAEE' },
   inner: { paddingBottom: 60 },
 
-  // Header Typography Formats
-  headerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-    borderBottomWidth: 1,
-    borderColor: '#DCD4C4',
-    paddingBottom: 20,
-  },
-  greetingText: {
-    fontFamily: Fonts.sans,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1.5,
-    color: '#706251',
-  },
-  nameTitle: {
-    color: '#281711',
-    fontSize: 22,
-    fontFamily: Fonts.baskervilleBold,
-    marginTop: 4,
-  },
-  badgeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F4F1EA',
-    borderWidth: 1,
-    borderColor: '#DCD4C4',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  badgeText: {
-    fontFamily: Fonts.sans,
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#513E2F',
-    letterSpacing: 0.5,
-  },
+  headerWrap:  { paddingHorizontal: 16, marginBottom: 16 },
+  welcomeText: { fontSize: 14, fontWeight: '600', color: P.textMuted },
+  dateText:    { fontSize: 11, color: P.textMuted, opacity: 0.8, marginTop: 1, marginBottom: 6 },
+  dashTitle:   { fontSize: 28, fontFamily: DISPLAY, color: P.espresso },
 
-  // Alert Arrays 
-  alertSectionStack: {
-    gap: 10,
-    marginBottom: 24,
-  },
-  alertBanner: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 12,
-    borderWidth: 1,
-  },
-  alertIconContext: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flex: 1,
-  },
-  dangerAlert: {
-    backgroundColor: '#FCE8E6',
-    borderColor: '#F5C2BC',
-  },
-  dangerAlertTxt: {
-    fontFamily: Fonts.sans,
-    fontSize: 12,
-    color: '#A83232',
-    fontWeight: '600',
-    flex: 1,
-  },
-  warningAlert: {
-    backgroundColor: '#FEF3C7',
-    borderColor: '#FCD34D',
-  },
-  warningAlertTxt: {
-    fontFamily: Fonts.sans,
-    fontSize: 12,
-    color: '#B45309',
-    fontWeight: '600',
-    flex: 1,
-  },
+  // Hero cards
+  heroRow:      { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, gap: 12, marginBottom: 16 },
+  heroCard:     { flex: 1, minWidth: 180, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(41,29,21,0.15)', overflow: 'hidden', justifyContent: 'space-between' },
+  heroInner:    { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', padding: 16, marginBottom: 16 },
+  heroCardLabel:{ fontSize: 12, fontWeight: '600', opacity: 0.8 },
+  heroVal:      { fontSize: 36, fontWeight: '700', fontFamily: SERIF, marginTop: 4 },
+  heroIconWrap: { width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center' },
+  heroTag:      { paddingVertical: 5, alignItems: 'center' },
+  heroTagText:  { fontSize: 10, fontWeight: '700', color: P.espresso, letterSpacing: 0.5 },
 
-  // Matrix Layout Grid Controls
-  sectionTitle: {
-    fontFamily: Fonts.sans,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1.2,
-    color: '#513E2F',
-    marginBottom: 12,
-  },
-  gridContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 14,
-    width: '100%',
-  },
+  // Alerts
+  alert:       { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 11, borderWidth: 1, borderRadius: 4 },
+  alertDanger: { backgroundColor: '#FDF0EF', borderColor: '#F5C2BC' },
+  alertWarn:   { backgroundColor: '#FFFBEB', borderColor: '#FCD34D' },
+  alertText:   { fontFamily: Fonts.sans, fontSize: 12, fontWeight: '600', flex: 1 },
 
-  // Stat Card Structural Blueprint
-  statCard: {
-    backgroundColor: '#FFFDF1',
-    borderWidth: 1,
-    borderColor: '#412D15',
-    borderRadius: 0,
-    padding: 16,
-    minWidth: 220,
-    flexGrow: 1,
-  },
-  statCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  statLabel: {
-    fontFamily: Fonts.sans,
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#706251',
-  },
-  iconBox: {
-    borderWidth: 1,
-    padding: 4,
-    backgroundColor: '#FFFFFF',
-  },
-  statValue: {
-    fontFamily: Fonts.baskervilleBold,
-    fontSize: 28,
-    fontWeight: '700',
-  },
+  sectionLabel: { color: P.textMuted, fontSize: 11, fontWeight: '700', letterSpacing: 1.2, marginTop: 20, marginBottom: 8, marginHorizontal: 16 },
 
-  // Operational System Triggers Button Block
-  actionBtn: {
-    backgroundColor: '#FFFDF1',
-    borderWidth: 1,
-    borderColor: '#412D15',
-    borderRadius: 0,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    minWidth: 240,
-    flexGrow: 1,
-  },
-  actionIconBlock: {
-    width: 36,
-    height: 36,
-    borderWidth: 1,
-    borderColor: '#412D15',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  actionTextFrame: {
-    flex: 1,
-  },
-  actionLabel: {
-    fontFamily: Fonts.baskervilleBold,
-    fontSize: 14,
-    color: '#281711',
-    fontWeight: '600',
-  },
-  actionSubLabel: {
-    fontFamily: Fonts.sans,
-    fontSize: 10,
-    color: '#A1927F',
-    marginTop: 2,
-    fontWeight: '500',
-  },
+  // Panel
+  panel:         { marginHorizontal: 16, backgroundColor: P.pureWhite, borderRadius: 6, borderWidth: 1, borderColor: P.parchmentDark, overflow: 'hidden', marginBottom: 12 },
+  panelHeader:   { backgroundColor: P.espresso, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10 },
+  panelHeaderTxt:{ color: P.parchment, fontSize: 13, fontWeight: '600', fontFamily: SERIF },
+
+  // Tiles
+  tileGrid:       { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 12 },
+  tile:           { width: '22%', flexGrow: 1, alignItems: 'center', paddingVertical: 14, backgroundColor: P.parchment, borderRadius: 6, borderWidth: 1, borderColor: P.parchmentDark, position: 'relative' },
+  tileHover:      { backgroundColor: P.parchmentDark, borderColor: P.mahogany },
+  tileIconCircle: { width: 34, height: 34, borderRadius: 17, backgroundColor: P.pureWhite, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  tileLabel:      { color: P.textMain, fontSize: 11, fontWeight: '600', textAlign: 'center' },
+  tileBadge:      { position: 'absolute', top: 6, right: 6, backgroundColor: P.danger, minWidth: 16, height: 16, borderRadius: 8, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center', zIndex: 5 },
+  tileBadgeText:  { color: '#FFF', fontSize: 9, fontWeight: '800' },
+
+  // Ledger rows
+  ledgerRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14 },
+  ledgerHover: { backgroundColor: P.parchment },
+  ledgerBorder:{ borderBottomWidth: 1, borderBottomColor: P.brass },
+  ledgerLeft:  { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  ledgerLabel: { color: P.textMain, fontSize: 13, fontWeight: '600' },
+  ledgerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  ledgerValue: { fontSize: 15, fontWeight: '700', fontFamily: SERIF },
 });

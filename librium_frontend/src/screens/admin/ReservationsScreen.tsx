@@ -4,7 +4,6 @@ import { Text, ScrollView, StyleSheet, RefreshControl, View, Platform, useWindow
 import { Ionicons } from '@expo/vector-icons';
 import { getReservations, fulfillReservation } from '../../services/api';
 import { Empty, Loading } from '../../components/UI';
-import SidebarLayout from '../../components/SidebarLayout';
 
 const P = {
   mahogany:     '#412D15',
@@ -97,142 +96,140 @@ export default function ReservationsScreen() {
   const otherReservations = items.filter(r => !['waiting', 'ready'].includes(r.status));
 
   return (
-    <SidebarLayout>
-      <ScrollView
-        style={s.root}
-        contentContainerStyle={[s.inner, { paddingTop: isDesktop ? 24 : 16 }]}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => { setRefreshing(true); load(); }}
-            tintColor={P.amber}
-          />
-        }
-      >
-        <View style={contentStyle}>
-          <View style={s.mainTitleWrap}>
-            <Text style={s.mainDashboardTitle}>Reservation Queue</Text>
-            <Text style={s.dateText}>Manage member waitlist ({items.length} total)</Text>
-          </View>
-
-          {readyReservations.length > 0 && (
-            <>
-              <Text style={s.sectionLabel}>READY TO FULFILL</Text>
-              <View style={s.panel}>
-                <View style={[s.panelHeader, { backgroundColor: P.success }]}>
-                  <Ionicons name="checkmark-circle" size={14} color={P.pureWhite} />
-                  <Text style={s.panelHeaderTxt}>Ready for Checkout</Text>
-                </View>
-                {readyReservations.map((r, idx) => {
-                  const meta = STATUS_META[r.status] || { bg: '#F1EDE4', text: P.textMuted };
-                  return (
-                    <View key={r.id} style={[s.actRow, idx !== readyReservations.length - 1 && s.actBorder]}>
-                      <View style={[s.actIcon, { backgroundColor: meta.text + '15' }]}>
-                        <Ionicons name="book-outline" size={14} color={meta.text} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={s.actLabel}>{r.book_title}</Text>
-                        <Text style={s.actMeta} numberOfLines={1}>
-                          Member: {r.member_name || r.member} · Reserved: {new Date(r.reservation_date).toLocaleDateString()}
-                        </Text>
-                        {r.queue_position !== undefined && (
-                          <Text style={s.actMeta}>Queue Position: #{r.queue_position}</Text>
-                        )}
-                      </View>
-                      <TouchableOpacity
-                        style={[s.approveBtn, processingId === r.id && s.approveBtnDisabled]}
-                        onPress={() => openFulfillModal(r)}
-                        disabled={processingId === r.id}
-                      >
-                        {processingId === r.id ? (
-                          <ActivityIndicator size="small" color={P.pureWhite} />
-                        ) : (
-                          <>
-                            <Ionicons name="checkmark" size={16} color={P.pureWhite} />
-                            <Text style={s.approveBtnText}>Create Loan</Text>
-                          </>
-                        )}
-                      </TouchableOpacity>
-                    </View>
-                  );
-                })}
-              </View>
-            </>
-          )}
-
-          {waitingReservations.length > 0 && (
-            <>
-              <Text style={s.sectionLabel}>WAITING QUEUE</Text>
-              <View style={s.panel}>
-                <View style={s.panelHeader}>
-                  <Ionicons name="time-outline" size={14} color={P.brass} />
-                  <Text style={s.panelHeaderTxt}>Pending Availability</Text>
-                </View>
-                {waitingReservations.map((r, idx) => {
-                  const meta = STATUS_META[r.status] || { bg: '#F1EDE4', text: P.textMuted };
-                  return (
-                    <View key={r.id} style={[s.actRow, idx !== waitingReservations.length - 1 && s.actBorder]}>
-                      <View style={[s.actIcon, { backgroundColor: meta.text + '15' }]}>
-                        <Ionicons name="time-outline" size={14} color={meta.text} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={s.actLabel}>{r.book_title}</Text>
-                        <Text style={s.actMeta} numberOfLines={1}>
-                          Member: {r.member_name || r.member} · Reserved: {new Date(r.reservation_date).toLocaleDateString()}
-                        </Text>
-                        {r.queue_position !== undefined && (
-                          <Text style={s.actMeta}>Queue Position: #{r.queue_position}</Text>
-                        )}
-                        {r.expiry_date && (
-                          <Text style={[s.actMeta, { color: P.danger }]} numberOfLines={1}>
-                            Expires: {new Date(r.expiry_date).toLocaleDateString()}
-                          </Text>
-                        )}
-                      </View>
-                      <View style={[s.statusBadge, { backgroundColor: meta.bg }]}>
-                        <Text style={[s.statusText, { color: meta.text }]}>{r.status.toUpperCase()}</Text>
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
-            </>
-          )}
-
-          {otherReservations.length > 0 && (
-            <>
-              <Text style={s.sectionLabel}>ARCHIVED</Text>
-              <View style={s.panel}>
-                <View style={[s.panelHeader, { backgroundColor: P.textMuted }]}>
-                  <Ionicons name="archive-outline" size={14} color={P.pureWhite} />
-                  <Text style={s.panelHeaderTxt}>Completed Records</Text>
-                </View>
-                {otherReservations.map((r, idx) => {
-                  const meta = STATUS_META[r.status] || { bg: '#F1EDE4', text: P.textMuted };
-                  return (
-                    <View key={r.id} style={[s.actRow, idx !== otherReservations.length - 1 && s.actBorder]}>
-                      <View style={[s.actIcon, { backgroundColor: meta.text + '15' }]}>
-                        <Ionicons name="checkmark-done-outline" size={14} color={meta.text} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={s.actLabel}>{r.book_title}</Text>
-                        <Text style={s.actMeta} numberOfLines={1}>
-                          Member: {r.member_name || r.member}
-                        </Text>
-                      </View>
-                      <View style={[s.statusBadge, { backgroundColor: meta.bg }]}>
-                        <Text style={[s.statusText, { color: meta.text }]}>{r.status.toUpperCase()}</Text>
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
-            </>
-          )}
-
-          {items.length === 0 && <Empty text="No reservations in the queue." />}
+    <ScrollView
+      style={s.root}
+      contentContainerStyle={[s.inner, { paddingTop: isDesktop ? 24 : 16 }]}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => { setRefreshing(true); load(); }}
+          tintColor={P.amber}
+        />
+      }
+    >
+      <View style={contentStyle}>
+        <View style={s.mainTitleWrap}>
+          <Text style={s.mainDashboardTitle}>Reservation Queue</Text>
+          <Text style={s.dateText}>Manage member waitlist ({items.length} total)</Text>
         </View>
-      </ScrollView>
+
+        {readyReservations.length > 0 && (
+          <>
+            <Text style={s.sectionLabel}>READY TO FULFILL</Text>
+            <View style={s.panel}>
+              <View style={[s.panelHeader, { backgroundColor: P.success }]}>
+                <Ionicons name="checkmark-circle" size={14} color={P.pureWhite} />
+                <Text style={s.panelHeaderTxt}>Ready for Checkout</Text>
+              </View>
+              {readyReservations.map((r, idx) => {
+                const meta = STATUS_META[r.status] || { bg: '#F1EDE4', text: P.textMuted };
+                return (
+                  <View key={r.id} style={[s.actRow, idx !== readyReservations.length - 1 && s.actBorder]}>
+                    <View style={[s.actIcon, { backgroundColor: meta.text + '15' }]}>
+                      <Ionicons name="book-outline" size={14} color={meta.text} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.actLabel}>{r.book_title}</Text>
+                      <Text style={s.actMeta} numberOfLines={1}>
+                        Member: {r.member_name || r.member} · Reserved: {new Date(r.reservation_date).toLocaleDateString()}
+                      </Text>
+                      {r.queue_position !== undefined && (
+                        <Text style={s.actMeta}>Queue Position: #{r.queue_position}</Text>
+                      )}
+                    </View>
+                    <TouchableOpacity
+                      style={[s.approveBtn, processingId === r.id && s.approveBtnDisabled]}
+                      onPress={() => openFulfillModal(r)}
+                      disabled={processingId === r.id}
+                    >
+                      {processingId === r.id ? (
+                        <ActivityIndicator size="small" color={P.pureWhite} />
+                      ) : (
+                        <>
+                          <Ionicons name="checkmark" size={16} color={P.pureWhite} />
+                          <Text style={s.approveBtnText}>Create Loan</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </View>
+          </>
+        )}
+
+        {waitingReservations.length > 0 && (
+          <>
+            <Text style={s.sectionLabel}>WAITING QUEUE</Text>
+            <View style={s.panel}>
+              <View style={s.panelHeader}>
+                <Ionicons name="time-outline" size={14} color={P.brass} />
+                <Text style={s.panelHeaderTxt}>Pending Availability</Text>
+              </View>
+              {waitingReservations.map((r, idx) => {
+                const meta = STATUS_META[r.status] || { bg: '#F1EDE4', text: P.textMuted };
+                return (
+                  <View key={r.id} style={[s.actRow, idx !== waitingReservations.length - 1 && s.actBorder]}>
+                    <View style={[s.actIcon, { backgroundColor: meta.text + '15' }]}>
+                      <Ionicons name="time-outline" size={14} color={meta.text} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.actLabel}>{r.book_title}</Text>
+                      <Text style={s.actMeta} numberOfLines={1}>
+                        Member: {r.member_name || r.member} · Reserved: {new Date(r.reservation_date).toLocaleDateString()}
+                      </Text>
+                      {r.queue_position !== undefined && (
+                        <Text style={s.actMeta}>Queue Position: #{r.queue_position}</Text>
+                      )}
+                      {r.expiry_date && (
+                        <Text style={[s.actMeta, { color: P.danger }]} numberOfLines={1}>
+                          Expires: {new Date(r.expiry_date).toLocaleDateString()}
+                        </Text>
+                      )}
+                    </View>
+                    <View style={[s.statusBadge, { backgroundColor: meta.bg }]}>
+                      <Text style={[s.statusText, { color: meta.text }]}>{r.status.toUpperCase()}</Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </>
+        )}
+
+        {otherReservations.length > 0 && (
+          <>
+            <Text style={s.sectionLabel}>ARCHIVED</Text>
+            <View style={s.panel}>
+              <View style={[s.panelHeader, { backgroundColor: P.textMuted }]}>
+                <Ionicons name="archive-outline" size={14} color={P.pureWhite} />
+                <Text style={s.panelHeaderTxt}>Completed Records</Text>
+              </View>
+              {otherReservations.map((r, idx) => {
+                const meta = STATUS_META[r.status] || { bg: '#F1EDE4', text: P.textMuted };
+                return (
+                  <View key={r.id} style={[s.actRow, idx !== otherReservations.length - 1 && s.actBorder]}>
+                    <View style={[s.actIcon, { backgroundColor: meta.text + '15' }]}>
+                      <Ionicons name="checkmark-done-outline" size={14} color={meta.text} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.actLabel}>{r.book_title}</Text>
+                      <Text style={s.actMeta} numberOfLines={1}>
+                        Member: {r.member_name || r.member}
+                      </Text>
+                    </View>
+                    <View style={[s.statusBadge, { backgroundColor: meta.bg }]}>
+                      <Text style={[s.statusText, { color: meta.text }]}>{r.status.toUpperCase()}</Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </>
+        )}
+
+        {items.length === 0 && <Empty text="No reservations in the queue." />}
+      </View>
 
       <Modal
         animationType="fade"
@@ -266,7 +263,7 @@ export default function ReservationsScreen() {
           </View>
         </View>
       </Modal>
-    </SidebarLayout>
+    </ScrollView>
   );
 }
 

@@ -3,6 +3,7 @@ import React, { ReactNode } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   ActivityIndicator, StyleSheet, TextInputProps, ViewStyle, TextStyle,
+  StyleProp,
 } from 'react-native';
 
 export const C = {
@@ -25,8 +26,8 @@ type BtnProps = {
   onPress: () => void;
   variant?: 'primary' | 'success' | 'danger' | 'warning' | 'ghost';
   loading?: boolean;
-  style?: ViewStyle;
   textStyle?: TextStyle;
+  style?: StyleProp<ViewStyle>;
 };
 
 export const Btn = ({

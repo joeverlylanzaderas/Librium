@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
@@ -185,11 +184,9 @@ export default function LoansScreen() {
   const [memberQuery, setMemberQuery] = useState('');
   const [bookQuery,   setBookQuery]   = useState('');
 
-  // FIX: load() is stable and always fetches fresh data, sets refreshing/loading correctly
   const load = useCallback(async () => {
     try {
       const d = await getLoans();
-      // FIX: handle both paginated {results:[]} and plain array responses
       const list: Loan[] = Array.isArray(d) ? d : (d.results ?? []);
       setLoans(list);
     } catch (e) {
@@ -230,10 +227,8 @@ export default function LoansScreen() {
     setSaving(true);
     try {
       await createLoan({ member: parseInt(form.memberId), book: parseInt(form.bookId) });
-      // FIX: close modal and reset BEFORE reloading so the list is visibly fresh
       setIssueModal(false);
       resetForm();
-      // FIX: await the reload so the list is guaranteed up to date before saving spinner stops
       await load();
     } catch (e: any) {
       const msg =
@@ -252,7 +247,6 @@ export default function LoansScreen() {
     confirm(`${status === 'verified' ? 'Verify' : 'Reject'} Return`, txt, async () => {
       try {
         await verifyReturn(id, status);
-        // FIX: await so list is fresh immediately
         await load();
       } catch (e: any) {
         const msg = e?.data?.detail || (e?.data ? JSON.stringify(e.data) : 'Action failed.');
@@ -261,7 +255,6 @@ export default function LoansScreen() {
     });
   };
 
-  // FIX: filter logic corrected — 'active' was excluding overdue loans that are still active holds
   const filtered = loans.filter((l) => {
     if (filter === 'pending')  return l.return_status === 'pending';
     if (filter === 'active')   return l.return_status === 'none' && !l.is_overdue;
@@ -286,146 +279,141 @@ export default function LoansScreen() {
   if (loading) return <Loading />;
 
   return (
-    <SidebarLayout currentScreen="Loans">
-      <View style={s.root}>
-        <ScrollView
-          contentContainerStyle={[s.inner, { padding: width > 768 ? 24 : 16 }]}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => { setRefreshing(true); load(); }}
-              tintColor="#281711"
-            />
-          }
-        >
-          {/* Header */}
-          <View style={s.headerContainer}>
-            <Text style={s.headerTitle}>Book Borrows/Loans ({filtered.length})</Text>
-            <TouchableOpacity style={s.addButton} activeOpacity={0.8} onPress={() => setIssueModal(true)}>
-              <Feather name="plus" size={16} color="#F4EFE0" />
-              <Text style={s.addButtonText}>Issue Loan</Text>
+    <View style={s.root}>
+      <ScrollView
+        contentContainerStyle={[s.inner, { padding: width > 768 ? 24 : 16 }]}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => { setRefreshing(true); load(); }}
+            tintColor="#281711"
+          />
+        }
+      >
+        {/* Header */}
+        <View style={s.headerContainer}>
+          <Text style={s.headerTitle}>Book Borrows/Loans ({filtered.length})</Text>
+          <TouchableOpacity style={s.addButton} activeOpacity={0.8} onPress={() => setIssueModal(true)}>
+            <Feather name="plus" size={16} color="#F4EFE0" />
+            <Text style={s.addButtonText}>Issue Loan</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Filters */}
+        <View style={s.filterRow}>
+          {(['all', 'pending', 'active', 'overdue', 'returned'] as const).map((f) => (
+            <TouchableOpacity
+              key={f}
+              style={[s.filterTab, filter === f && s.filterTabActive]}
+              onPress={() => setFilter(f)}
+            >
+              <Text style={[s.filterTxt, filter === f && s.filterTxtActive]}>{f.toUpperCase()}</Text>
             </TouchableOpacity>
-          </View>
+          ))}
+        </View>
 
-          {/* Filters */}
-          <View style={s.filterRow}>
-            {(['all', 'pending', 'active', 'overdue', 'returned'] as const).map((f) => (
-              <TouchableOpacity
-                key={f}
-                style={[s.filterTab, filter === f && s.filterTabActive]}
-                onPress={() => setFilter(f)}
-              >
-                <Text style={[s.filterTxt, filter === f && s.filterTxtActive]}>{f.toUpperCase()}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+        {filtered.length === 0 && <Empty text="No entries matching criteria." />}
 
-          {filtered.length === 0 && <Empty text="No entries matching criteria." />}
-
-          {/* Loan cards */}
-          <View style={s.gridContainer}>
-            {filtered.map((l) => {
-              const statusKey = l.return_status === 'none' && l.is_overdue
-                ? 'overdue'
-                : (STATUS_MAP[l.return_status] ? l.return_status : 'none');
-              const t = STATUS_MAP[statusKey];
-              return (
-                <Card key={l.id} style={StyleSheet.flatten([s.customCard, { width: cardW, opacity: l.return_status === 'verified' ? 0.7 : 1 }])}>
-                  <View style={s.cardContent}>
-                    <View style={s.cardHeaderLine}>
-                      <View style={[s.statusPill, { backgroundColor: t.bg, borderColor: t.border }]}>
-                        <Text style={[s.statusText, { color: t.text }]}>{t.lbl}</Text>
-                      </View>
-                      <Text style={s.ledgerIdText}>ID: #{l.id}</Text>
+        {/* Loan cards */}
+        <View style={s.gridContainer}>
+          {filtered.map((l) => {
+            const statusKey = l.return_status === 'none' && l.is_overdue
+              ? 'overdue'
+              : (STATUS_MAP[l.return_status] ? l.return_status : 'none');
+            const t = STATUS_MAP[statusKey];
+            return (
+              <Card key={l.id} style={StyleSheet.flatten([s.customCard, { width: cardW, opacity: l.return_status === 'verified' ? 0.7 : 1 }])}>
+                <View style={s.cardContent}>
+                  <View style={s.cardHeaderLine}>
+                    <View style={[s.statusPill, { backgroundColor: t.bg, borderColor: t.border }]}>
+                      <Text style={[s.statusText, { color: t.text }]}>{t.lbl}</Text>
                     </View>
+                    <Text style={s.ledgerIdText}>ID: #{l.id}</Text>
+                  </View>
 
-                    <View style={s.metaContext}>
-                      {/* FIX: use book_title (correct field from LoanSerializer) */}
-                      <Text style={s.bookTitleText} numberOfLines={2}>
-                        {l.book_title ?? 'Untitled Catalog Material'}
+                  <View style={s.metaContext}>
+                    <Text style={s.bookTitleText} numberOfLines={2}>
+                      {l.book_title ?? 'Untitled Catalog Material'}
+                    </Text>
+                    {(l.book_category || l.book_department) && (
+                      <Text style={s.bookAuthorText}>
+                        {[l.book_category, l.book_department].filter(Boolean).join(' · ')}
                       </Text>
-                      {/* FIX: removed book_author (doesn't exist in LoanSerializer);
-                               show category/department instead which are the actual fields */}
-                      {(l.book_category || l.book_department) && (
-                        <Text style={s.bookAuthorText}>
-                          {[l.book_category, l.book_department].filter(Boolean).join(' · ')}
-                        </Text>
-                      )}
+                    )}
+                  </View>
+
+                  <View style={s.divider} />
+
+                  <View style={s.metricsGrid}>
+                    <View style={s.metricLine}>
+                      <Feather name="user" size={12} color="#A1927F" />
+                      <Text style={s.metricLabel}>Borrower:</Text>
+                      <Text style={s.metricValue} numberOfLines={1}>
+                        {l.member_name ?? `ID: ${l.member}`}
+                      </Text>
                     </View>
-
-                    <View style={s.divider} />
-
-                    <View style={s.metricsGrid}>
+                    {l.loan_date && (
                       <View style={s.metricLine}>
-                        <Feather name="user" size={12} color="#A1927F" />
-                        <Text style={s.metricLabel}>Borrower:</Text>
-                        <Text style={s.metricValue} numberOfLines={1}>
-                          {l.member_name ?? `ID: ${l.member}`}
+                        <Feather name="calendar" size={12} color="#A1927F" />
+                        <Text style={s.metricLabel}>Issued:</Text>
+                        <Text style={s.metricValue}>
+                          {new Date(l.loan_date).toLocaleDateString()}
                         </Text>
                       </View>
-                      {l.loan_date && (
-                        <View style={s.metricLine}>
-                          <Feather name="calendar" size={12} color="#A1927F" />
-                          <Text style={s.metricLabel}>Issued:</Text>
-                          <Text style={s.metricValue}>
-                            {new Date(l.loan_date).toLocaleDateString()}
-                          </Text>
-                        </View>
-                      )}
-                      <View style={s.metricLine}>
-                        <Feather name="clock" size={12} color={l.is_overdue && l.return_status === 'none' ? '#8A2B2B' : '#A1927F'} />
-                        <Text style={[s.metricLabel, l.is_overdue && l.return_status === 'none' && { color: '#8A2B2B' }]}>
-                          Due Date:
-                        </Text>
-                        <Text style={[s.metricValue, l.is_overdue && l.return_status === 'none' && { color: '#8A2B2B', fontWeight: '700' }]}>
-                          {l.due_date ? new Date(l.due_date).toLocaleDateString() : '—'}
+                    )}
+                    <View style={s.metricLine}>
+                      <Feather name="clock" size={12} color={l.is_overdue && l.return_status === 'none' ? '#8A2B2B' : '#A1927F'} />
+                      <Text style={[s.metricLabel, l.is_overdue && l.return_status === 'none' && { color: '#8A2B2B' }]}>
+                        Due Date:
+                      </Text>
+                      <Text style={[s.metricValue, l.is_overdue && l.return_status === 'none' && { color: '#8A2B2B', fontWeight: '700' }]}>
+                        {l.due_date ? new Date(l.due_date).toLocaleDateString() : '—'}
+                      </Text>
+                    </View>
+                    {l.return_status === 'pending' && l.return_requested_date && (
+                      <View style={[s.metricLine, s.highlightLine, { backgroundColor: '#FEF3C7' }]}>
+                        <Feather name="bell" size={12} color="#D97706" />
+                        <Text style={[s.metricLabel, { color: '#D97706' }]}>Requested:</Text>
+                        <Text style={[s.metricValue, { color: '#D97706' }]}>
+                          {new Date(l.return_requested_date).toLocaleDateString()}
                         </Text>
                       </View>
-                      {l.return_status === 'pending' && l.return_requested_date && (
-                        <View style={[s.metricLine, s.highlightLine, { backgroundColor: '#FEF3C7' }]}>
-                          <Feather name="bell" size={12} color="#D97706" />
-                          <Text style={[s.metricLabel, { color: '#D97706' }]}>Requested:</Text>
-                          <Text style={[s.metricValue, { color: '#D97706' }]}>
-                            {new Date(l.return_requested_date).toLocaleDateString()}
-                          </Text>
-                        </View>
-                      )}
-                      {l.return_status === 'none' && l.is_overdue && (
-                        <View style={[s.metricLine, s.highlightLine, { backgroundColor: '#FCE8E6' }]}>
-                          <Feather name="alert-triangle" size={12} color="#C53030" />
-                          <Text style={[s.metricLabel, { color: '#C53030', fontWeight: '700' }]}>Overdue:</Text>
-                          <Text style={[s.metricValue, { color: '#C53030', fontWeight: '700' }]}>
-                            {l.overdue_days}d Delayed
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-
-                    {l.return_status === 'pending' && (
-                      <View style={s.actionRowLayout}>
-                        <TouchableOpacity
-                          style={[s.actionControlBtn, s.verifyBtn]}
-                          onPress={() => handleAction(l.id, 'verified', 'Confirm physical verification of item return?')}
-                        >
-                          <Feather name="check" size={12} color="#FFF" />
-                          <Text style={s.verifyBtnTxt}>Verify</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={[s.actionControlBtn, s.rejectBtn]}
-                          onPress={() => handleAction(l.id, 'rejected', 'Reject this item return request?')}
-                        >
-                          <Feather name="x" size={12} color="#8A2B2B" />
-                          <Text style={s.rejectBtnTxt}>Reject</Text>
-                        </TouchableOpacity>
+                    )}
+                    {l.return_status === 'none' && l.is_overdue && (
+                      <View style={[s.metricLine, s.highlightLine, { backgroundColor: '#FCE8E6' }]}>
+                        <Feather name="alert-triangle" size={12} color="#C53030" />
+                        <Text style={[s.metricLabel, { color: '#C53030', fontWeight: '700' }]}>Overdue:</Text>
+                        <Text style={[s.metricValue, { color: '#C53030', fontWeight: '700' }]}>
+                          {l.overdue_days}d Delayed
+                        </Text>
                       </View>
                     )}
                   </View>
-                </Card>
-              );
-            })}
-          </View>
-        </ScrollView>
-      </View>
+
+                  {l.return_status === 'pending' && (
+                    <View style={s.actionRowLayout}>
+                      <TouchableOpacity
+                        style={[s.actionControlBtn, s.verifyBtn]}
+                        onPress={() => handleAction(l.id, 'verified', 'Confirm physical verification of item return?')}
+                      >
+                        <Feather name="check" size={12} color="#FFF" />
+                        <Text style={s.verifyBtnTxt}>Verify</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[s.actionControlBtn, s.rejectBtn]}
+                        onPress={() => handleAction(l.id, 'rejected', 'Reject this item return request?')}
+                      >
+                        <Feather name="x" size={12} color="#8A2B2B" />
+                        <Text style={s.rejectBtnTxt}>Reject</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              </Card>
+            );
+          })}
+        </View>
+      </ScrollView>
 
       {/* ── Issue Loan modal ───────────────────────────────────────────────── */}
       <Modal
@@ -501,15 +489,14 @@ export default function LoansScreen() {
                       onPress={handleCreate}
                       disabled={saving || !form.bookId || !form.memberId}
                     >
-                      {saving
-                        ? <ActivityIndicator size="small" color="#F4EFE0" />
-                        : (
-                          <>
-                            <Feather name="book-open" size={13} color="#F4EFE0" />
-                            <Text style={s.formSubmitBtnTxt}>Issue Hold Ledger</Text>
-                          </>
-                        )
-                      }
+                      {saving ? (
+                        <ActivityIndicator size="small" color="#F4EFE0" />
+                      ) : (
+                        <>
+                          <Feather name="book-open" size={13} color="#F4EFE0" />
+                          <Text style={s.formSubmitBtnTxt}>Issue Hold Ledger</Text>
+                        </>
+                      )}
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -584,7 +571,7 @@ export default function LoansScreen() {
           );
         }}
       />
-    </SidebarLayout>
+    </View>
   );
 }
 
@@ -640,4 +627,3 @@ const s = StyleSheet.create({
   formSubmitBtn:      { backgroundColor: '#281711', borderColor: '#281711' },
   formSubmitBtnTxt:   { color: '#F4EFE0', fontSize: 12, fontWeight: '700', fontFamily: Fonts.sans },
 });
-

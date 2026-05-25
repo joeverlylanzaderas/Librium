@@ -71,7 +71,13 @@ export default function LoginScreen({ navigation, route }: Props) {
       const { access } = await login(email.trim().toLowerCase(), password);
       await setToken(access);
       const me = await getMe();
-      signIn(access, me);
+      signIn(access, {
+        id: me.id,
+        email: me.email,
+        full_name: me.full_name,
+        role: me.role,
+        profile_picture: me.profile?.profile_picture ?? null,
+      });
     } catch (e: any) {
       if (!e || typeof e.status === 'undefined') {
         return showAlert('Connection Error', 'Cannot connect to server. Check network status.');

@@ -6,7 +6,6 @@ import {
   RefreshControl, TouchableOpacity, ActivityIndicator, useWindowDimensions, TextInput
 } from 'react-native';
 import { Card, Btn, Empty, Loading, SectionHeader, Badge } from '../../components/UI';
-import SidebarLayout from '../../components/SidebarLayout'; 
 import { Fonts } from '../../constants/theme';
 import { Feather } from '@expo/vector-icons';
 import {
@@ -120,7 +119,6 @@ function makeListScreen(
     if (loading) return <Loading />;
 
     return (
-      <SidebarLayout currentScreen={title}>
         <View style={s.root}>
           <ScrollView
             contentContainerStyle={[s.inner, { padding: width > 768 ? 24 : 16 }]}
@@ -239,7 +237,6 @@ function makeListScreen(
             </View>
           </Modal>
         </View>
-      </SidebarLayout>
     );
   };
 }
@@ -359,7 +356,6 @@ export function SemestersScreen() {
   if (loading) return <Loading />;
 
   return (
-    <SidebarLayout currentScreen="Semesters">
       <View style={s.root}>
         <ScrollView
           contentContainerStyle={[s.inner, { padding: width > 768 ? 24 : 16 }]}
@@ -536,7 +532,6 @@ export function SemestersScreen() {
           </View>
         </Modal>
       </View>
-    </SidebarLayout>
   );
 }
 

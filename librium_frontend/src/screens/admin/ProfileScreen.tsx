@@ -12,11 +12,12 @@ import {
   Modal,
   Platform,
   KeyboardAvoidingView,
+  Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { getMe, updateMe, changePassword } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
-import SidebarLayout from '../../components/SidebarLayout'; 
 
 const SERIF_FONT = Platform.select({ ios: 'Georgia', android: 'serif' });
 const P = {
@@ -31,13 +32,14 @@ const P = {
 };
 
 type Profile = {
-  phone_number: string;
-  address:      string;
-  bio:          string;
-  birthday:     string | null;
-  sex:          string | null;
-  sex_display:  string | null;
-  age:          number | null;
+  profile_picture: string | null;
+  phone_number:    string;
+  address:         string;
+  bio:             string;
+  birthday:        string | null;
+  sex:             string | null;
+  sex_display:     string | null;
+  age:             number | null;
 };
 
 type Me = {
@@ -52,7 +54,7 @@ type Me = {
 };
 
 export default function ProfileScreen() {
-  const { signOut } = useAuth();
+  const { signOut, refreshUser  } = useAuth();
   const [me, setMe] = useState<Me | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -73,6 +75,7 @@ export default function ProfileScreen() {
   const [newPw, setNewPw] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
   const [changingPw, setChangingPw] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const loadProfileData = useCallback(async () => {
     try {
@@ -88,6 +91,71 @@ export default function ProfileScreen() {
   useEffect(() => {
     loadProfileData();
   }, [loadProfileData]);
+
+  const handlePickAvatar = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Please allow access to your photo library to change your profile picture.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (result.canceled || !result.assets?.[0]) return;
+
+    const asset = result.assets[0];
+    const fileInfo = {
+      uri: asset.uri,
+      type: asset.mimeType ?? 'image/jpeg',
+      name: asset.fileName ?? `avatar_${Date.now()}.jpg`,
+    };
+
+    setUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+
+      if (Platform.OS === 'web') {
+        const responseBlob = await fetch(fileInfo.uri);
+        const fileBlob = await responseBlob.blob();
+        formData.append('file', fileBlob, fileInfo.name);
+      } else {
+        formData.append('file', {
+          uri: fileInfo.uri,
+          type: fileInfo.type,
+          name: fileInfo.name,
+        } as any);
+      }
+
+      formData.append('upload_preset', 'librium_covers');
+      formData.append('cloud_name', 'dz5b4xsjy');
+
+      const response = await fetch('https://api.cloudinary.com/v1_1/dz5b4xsjy/image/upload', {
+        method: 'POST',
+        body: formData,
+        headers: { 'Accept': 'application/json' },
+      });
+
+      const responseText = await response.text();
+      if (!response.ok) throw new Error(`Upload failed (${response.status})`);
+
+      const cloudData = JSON.parse(responseText);
+      if (!cloudData.secure_url) throw new Error('No URL returned from Cloudinary');
+
+      await updateMe({ profile: { profile_picture: cloudData.secure_url } });
+      await loadProfileData();
+      await refreshUser({ profile_picture: cloudData.secure_url }); 
+    } catch (e: any) {
+      console.error('Avatar upload error:', e);
+      Alert.alert('Upload Failed', 'Could not update profile picture. Please try again.');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const openEditModal = () => {
     if (!me) return;
@@ -163,31 +231,38 @@ export default function ProfileScreen() {
     ]);
   };
 
-  if (loading) {
+  if (loading || !me) {
     return (
-      <SidebarLayout currentScreen="Profile">
-        <View style={s.centerContainer}>
-          <ActivityIndicator size="large" color={P.espresso} />
-        </View>
-      </SidebarLayout>
+      <View style={s.centerContainer}>
+        <ActivityIndicator size="large" color={P.espresso} />
+      </View>
     );
   }
-
-  if (!me) return null;
 
   const sexLabel = me.profile?.sex === 'M' ? 'Male' : me.profile?.sex === 'F' ? 'Female' : me.profile?.sex === 'O' ? 'Other' : '—';
 
   return (
-    <SidebarLayout currentScreen="Profile">
       <ScrollView style={s.container} contentContainerStyle={s.scrollContent}>
         
         {/* Profile Header Block */}
         <View style={s.headerCard}>
-          <View style={s.avatarContainer}>
-            <Text style={s.avatarText}>
-              {me.full_name?.charAt(0)?.toUpperCase() ?? 'A'}
-            </Text>
-          </View>
+          <TouchableOpacity style={s.avatarWrapper} onPress={handlePickAvatar} disabled={uploadingAvatar}>
+            {me.profile?.profile_picture ? (
+              <Image source={{ uri: me.profile.profile_picture }} style={s.avatarImage} />
+            ) : (
+              <View style={s.avatarContainer}>
+                <Text style={s.avatarText}>
+                  {me.full_name?.charAt(0)?.toUpperCase() ?? 'A'}
+                </Text>
+              </View>
+            )}
+            <View style={s.avatarEditBadge}>
+              {uploadingAvatar
+                ? <ActivityIndicator size="small" color={P.espresso} />
+                : <Ionicons name="camera" size={14} color={P.espresso} />
+              }
+            </View>
+          </TouchableOpacity>
           <Text style={s.adminName}>{me.full_name}</Text>
           <Text style={s.adminEmail}>{me.email}</Text>
           <View style={s.roleBadge}>
@@ -318,7 +393,6 @@ export default function ProfileScreen() {
         </Modal>
 
       </ScrollView>
-    </SidebarLayout>
   );
 }
 
@@ -335,6 +409,17 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: P.mahogany,
   },
+  avatarWrapper: {
+    position: 'relative',
+    marginBottom: 14,
+  },
+  avatarImage: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    borderWidth: 2,
+    borderColor: P.brass,
+  },
   avatarContainer: {
     width: 84,
     height: 84,
@@ -342,7 +427,19 @@ const s = StyleSheet.create({
     backgroundColor: P.brass,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 14,
+  },
+  avatarEditBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: P.brass,
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: P.espresso,
   },
   avatarText: { color: P.espresso, fontSize: 34, fontWeight: '800', fontFamily: SERIF_FONT },
   adminName: { color: P.parchment, fontSize: 22, fontWeight: '700', fontFamily: SERIF_FONT, marginBottom: 4 },
