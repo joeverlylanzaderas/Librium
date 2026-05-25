@@ -1,6 +1,7 @@
 # library/serializers.py
 from rest_framework import serializers
-from .models import Category, Author, Book, ChatMessage, Department, KnowledgeBase, Loan, Reservation, Fine, Semester, BorrowRequest
+from urllib3 import request
+from .models import Category, Author, Book, ChatMessage, Department, KnowledgeBase, Loan, Reservation, Fine, Semester, BorrowRequest, Bookmark
 
 
 # ─────────────────────────────────────────────
@@ -36,7 +37,7 @@ class AuthorSerializer(serializers.ModelSerializer):
     class Meta:
         model  = Author
         fields = ['id', 'name', 'biography', 'nationality']
-
+        
 
 # ─────────────────────────────────────────────
 #  DEPARTMENT
@@ -69,12 +70,37 @@ class SemesterSerializer(serializers.ModelSerializer):
             'start_date', 'end_date', 'is_active', 'loan_count',
         ]
 
+# ─────────────────────────────────────────────
+#  BOOKMARK
+# ─────────────────────────────────────────────
+class BookmarkSerializer(serializers.ModelSerializer):
+    member = serializers.PrimaryKeyRelatedField(read_only=True)
+    book_title = serializers.CharField(source='book.title', read_only=True)
+    book_cover = serializers.SerializerMethodField()
 
+    class Meta:
+        model = Bookmark
+        fields = ['id', 'member', 'book', 'book_title', 'book_cover', 'bookmarked_date']
+
+    def get_book_cover(self, obj):
+        if not obj.book or not obj.book.cover_image:
+            return None
+        url = str(obj.book.cover_image)
+        return url.replace('/upload/', '/upload/f_auto,w_200/')
+    
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if not request or not request.user:
+            raise serializers.ValidationError("Authentication required to bookmark books.")
+        validated_data['member'] = request.user
+        return super().create(validated_data)
+        
+    
 # ─────────────────────────────────────────────
 #  BOOK
 # ─────────────────────────────────────────────
-
 class BookSerializer(serializers.ModelSerializer):
+    is_bookmarked   = serializers.SerializerMethodField()
     author_name     = serializers.CharField(source='author.name',     read_only=True)
     category_name   = serializers.CharField(source='category.name',   read_only=True, default=None)
     department_name = serializers.CharField(source='department.name', read_only=True, default=None)
@@ -90,7 +116,13 @@ class BookSerializer(serializers.ModelSerializer):
             'cover_image',
             'description',
         ]
-
+        
+    def get_is_bookmarked(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return Bookmark.objects.filter(member=request.user, book=obj).exists()
+        return False
+    
     def get_cover_image_url(self, obj):
         if not obj.cover_image:
             return None

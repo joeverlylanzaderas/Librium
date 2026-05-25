@@ -19,12 +19,12 @@ from django.db import transaction
 from rest_framework.generics import ListCreateAPIView, ListAPIView  
 
 from .models import (
-    Category, Author, Book, Department,
+    Bookmark, Category, Author, Book, Department,
     BorrowRequest, Loan, Reservation, Fine, Semester, KnowledgeBase, ChatMessage,
     LOAN_PERIOD_DAYS, FINE_RATE_PER_DAY,
 )
 from .serializers import (
-    CategorySerializer, AuthorSerializer, BookSerializer, DepartmentSerializer,
+    BookmarkSerializer, CategorySerializer, AuthorSerializer, BookSerializer, DepartmentSerializer,
     BorrowRequestSerializer, BorrowRequestCreateSerializer, BorrowRequestActionSerializer,
     LoanSerializer, LoanCreateSerializer, LoanReturnRequestSerializer,
     LoanReturnVerifySerializer, ReservationSerializer, ReservationCreateSerializer,
@@ -106,6 +106,35 @@ class DepartmentRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIVi
         if self.request.method == 'GET':
             return [IsAuthenticated()]
         return [IsAuthenticated(), IsAdminUser()]
+
+
+# ────────────────────────────────────────────
+# BOOKMARK
+# ────────────────────────────────────────────
+class BookmarkListCreateAPIView(generics.ListCreateAPIView):
+    """
+    GET: List all bookmarks for the logged-in member.
+    POST: Create a new bookmark linked to the logged-in member.
+    """
+    serializer_class = BookmarkSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Strict user isolation: Only show the logged-in user's bookmarks
+        # select_related('book') optimizes the SQL query to fetch book details efficiently
+        return Bookmark.objects.filter(member=self.request.user).select_related('book')
+
+
+class BookmarkDestroyAPIView(generics.DestroyAPIView):
+    """
+    DELETE: Remove a bookmark by its ID.
+    """
+    serializer_class = BookmarkSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Ensures a user can only delete their own bookmarks
+        return Bookmark.objects.filter(member=self.request.user)
 
 
 # ─────────────────────────────────────────────
@@ -479,7 +508,6 @@ class LoanReturnRequestAPIView(generics.GenericAPIView):
         loan.save()
 
         return Response(LoanSerializer(loan).data, status=status.HTTP_200_OK)
-
 
 # ──────────────────────────
 #  LOAN — RETURN VERIFY 

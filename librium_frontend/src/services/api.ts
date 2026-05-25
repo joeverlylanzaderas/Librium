@@ -99,6 +99,11 @@
   export const updateUser = (id: number, data: any) => req('PATCH', `/users/${id}/`, data);
   export const deleteUser = (id: number)  => req('DELETE', `/users/${id}/`);
 
+  // ── Bookmarks ──────────────────────────────────────────────────
+  export const getBookmarks = () =>  req('GET', '/library/bookmarks/');
+  export const createBookmark = (bookId: number) =>  req('POST', '/library/bookmarks/', { book: bookId });
+  export const deleteBookmark = (bookmarkId: number) =>  req('DELETE', `/library/bookmarks/${bookmarkId}/`);
+
   // ── Books ─────────────────────────────────────────────────────
   export const getBooks   = (params?: string) => req('GET', `/library/books/${params ? `?${params}` : ''}`);
   export const getBook    = (id: number)      => req('GET', `/library/books/${id}/`);

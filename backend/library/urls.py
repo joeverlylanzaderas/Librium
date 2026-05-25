@@ -18,6 +18,10 @@ urlpatterns = [
     # ── Departments ───────────────────────────────────────────
     path('departments/',          views.DepartmentListCreateAPIView.as_view(),          name='department-list-create'),
     path('departments/<int:pk>/', views.DepartmentRetrieveUpdateDestroyAPIView.as_view(), name='department-detail'),
+    
+    # ── Bookmarks ─────────────────────────────────────────────
+    path('bookmarks/', views.BookmarkListCreateAPIView.as_view(), name='bookmark-list-create'),
+    path('bookmarks/<int:pk>/', views.BookmarkDestroyAPIView.as_view(), name='bookmark-detail'),
 
     # ── Books ─────────────────────────────────────────────────
     path('books/',          views.BookListCreateAPIView.as_view(),          name='book-list-create'),

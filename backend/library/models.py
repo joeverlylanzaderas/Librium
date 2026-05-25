@@ -97,6 +97,36 @@ class Book(models.Model):
 
     def __str__(self):
         return self.title
+    
+
+# ─────────────────────────────────────────────
+# BOOKMARK
+# ─────────────────────────────────────────────
+class Bookmark(models.Model):
+    member = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='bookmarks'
+    )
+    book = models.ForeignKey(
+        Book,
+        on_delete=models.CASCADE,
+        related_name='bookmarks'
+    )
+    bookmarked_date = models.DateField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-bookmarked_date']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['member', 'book'],
+                name='unique_bookmark_per_member_book'
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.member} bookmarked {self.book.title}"
+
 
 
 # ─────────────────────────────────────────────
