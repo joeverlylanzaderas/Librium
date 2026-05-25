@@ -8,6 +8,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { getMe, updateMe, changePassword } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { useAutoRefreshOnFocus } from '../../hooks/useAutoRefreshOnFocus';
 import { C, Row } from '../../components/UI';
 
 type Profile = {
@@ -75,7 +76,7 @@ export default function BorrowerProfileScreen() {
       }
     }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useAutoRefreshOnFocus(load);
 
   const handlePickAvatar = async () => {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();

@@ -5,7 +5,7 @@ import {
   RefreshControl, TouchableOpacity, useWindowDimensions, Platform
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useFocusEffect } from '@react-navigation/native';
+import { useAutoRefreshOnFocus } from '../../hooks/useAutoRefreshOnFocus';
 import { Ionicons } from '@expo/vector-icons';
 import { getDashboard } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -136,11 +136,11 @@ export default function DashboardScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try { setStats(await getDashboard()); } catch (e) {  } finally { setLoading(false); setRefreshing(false); }
-  };
+  }, []);
 
-  useFocusEffect(useCallback(() => { load(); }, []));
+  useAutoRefreshOnFocus(load);
   if (loading) return <Loading />;
 
   const nav = (screen: keyof AdminStackParamList) => () => navigation.navigate(screen);

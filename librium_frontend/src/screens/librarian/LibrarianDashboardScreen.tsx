@@ -5,6 +5,7 @@ import {
   StyleSheet, RefreshControl, useWindowDimensions, Platform
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useAutoRefreshOnFocus } from '../../hooks/useAutoRefreshOnFocus';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import { getDashboard } from '../../services/api';
@@ -108,7 +109,7 @@ export default function LibrarianDashboardScreen() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useAutoRefreshOnFocus(load, 15000);
 
   if (loading) return <Loading />;
 

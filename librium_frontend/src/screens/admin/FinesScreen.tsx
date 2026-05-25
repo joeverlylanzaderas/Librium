@@ -3,6 +3,7 @@ import { View, Text, ScrollView, StyleSheet, RefreshControl, Alert, Platform, us
 import { Ionicons } from '@expo/vector-icons';
 import { getFines, payFine } from '../../services/api';
 import { useAlert } from '../../components/AlertProvider';
+import { useAutoRefreshOnFocus } from '../../hooks/useAutoRefreshOnFocus';
 import { Empty, Loading } from '../../components/UI';
 
 const P = {
@@ -50,7 +51,7 @@ export default function FinesScreen() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useAutoRefreshOnFocus(load);
 
   const { showAlert, showConfirm } = useAlert();
 

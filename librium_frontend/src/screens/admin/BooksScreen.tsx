@@ -9,6 +9,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import { Card, Btn, Empty, Loading } from '../../components/UI';
 import { useAlert } from '../../components/AlertProvider';
+import { useAutoRefreshOnFocus } from '../../hooks/useAutoRefreshOnFocus';
 import { Fonts } from '../../constants/theme';
 import { AdminStackParamList } from '../../navigation/AppNavigator';
 import {
@@ -84,7 +85,7 @@ export default function BooksScreen({ navigation }: Props) {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useAutoRefreshOnFocus(load);
 
   const resetForm = () => {
     setForm({ 

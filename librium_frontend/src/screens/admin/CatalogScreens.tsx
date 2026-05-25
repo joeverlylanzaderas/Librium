@@ -6,6 +6,7 @@ import {
   RefreshControl, TouchableOpacity, ActivityIndicator, useWindowDimensions, TextInput
 } from 'react-native';
 import { Card, Btn, Empty, Loading, SectionHeader, Badge } from '../../components/UI';
+import { useAutoRefreshOnFocus } from '../../hooks/useAutoRefreshOnFocus';
 import { useAlert } from '../../components/AlertProvider';
 import { Fonts } from '../../constants/theme';
 import { Feather } from '@expo/vector-icons';
@@ -57,7 +58,7 @@ function makeListScreen(
       }
     };
 
-    useEffect(() => { load(); }, []);
+    useAutoRefreshOnFocus(load);
 
     const resetForm = () => {
       setForm(Object.fromEntries(fields.map((f) => [f.key, ''])));
@@ -294,7 +295,7 @@ export function SemestersScreen() {
     finally { setLoading(false); setRefreshing(false); }
   };
 
-  useEffect(() => { load(); }, []);
+  useAutoRefreshOnFocus(load);
 
   const handleSave = async () => {
     if (!form.academic_year || !form.semester_type) {

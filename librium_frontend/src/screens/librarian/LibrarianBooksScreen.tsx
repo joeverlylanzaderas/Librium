@@ -9,6 +9,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Feather } from '@expo/vector-icons';
 import { Card, Btn, Empty, Loading, Badge, C } from '../../components/UI';
 import { useAlert } from '../../components/AlertProvider';
+import { useAutoRefreshOnFocus } from '../../hooks/useAutoRefreshOnFocus';
 import { Fonts } from '../../constants/theme';
 import {
   getBooks, createBook, updateBook, deleteBook,
@@ -87,7 +88,7 @@ export default function LibrarianBooksScreen() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useAutoRefreshOnFocus(load);
 
   const toggleRow = (id: number) => {
     setExpandedRows(prev => ({ ...prev, [id]: !prev[id] }));

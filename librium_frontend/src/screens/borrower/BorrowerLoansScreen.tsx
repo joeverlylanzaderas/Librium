@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import { getLoans, requestReturn } from '../../services/api';
 import { useAlert } from '../../components/AlertProvider';
+import { useAutoRefreshOnFocus } from '../../hooks/useAutoRefreshOnFocus';
 import { C, Badge, Empty, Loading } from '../../components/UI';
 
 type Loan = {
@@ -65,7 +66,7 @@ export default function BorrowerLoansScreen() {
     finally { setLoading(false); setRefreshing(false); }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useAutoRefreshOnFocus(load);
 
   const openReturnModal = (loan: Loan) => {
     setReturnLoan(loan);

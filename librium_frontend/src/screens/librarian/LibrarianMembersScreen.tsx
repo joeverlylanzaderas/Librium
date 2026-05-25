@@ -3,6 +3,7 @@
 // ─────────────────────────────────────────────────────────────
 import { getUsers } from '../../services/api';
 import React, { useEffect, useState, useCallback } from 'react';
+import { useAutoRefreshOnFocus } from '../../hooks/useAutoRefreshOnFocus';
 import {
     View, Text, FlatList, TouchableOpacity, StyleSheet,
     RefreshControl, Alert, TextInput, Modal, ActivityIndicator,
@@ -40,7 +41,7 @@ export default function LibrarianMembersScreen() {
     finally { setLoading(false); setRefreshing(false); }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useAutoRefreshOnFocus(load);
 
   const filtered = members.filter((m) =>
     m.full_name?.toLowerCase().includes(search.toLowerCase()) ||

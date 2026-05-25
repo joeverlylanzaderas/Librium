@@ -2,6 +2,7 @@
 //  LibrarianFinesScreen.tsx
 // ─────────────────────────────────────────────────────────────
 import React, { useEffect, useState, useCallback } from 'react';
+import { useAutoRefreshOnFocus } from '../../hooks/useAutoRefreshOnFocus';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   RefreshControl, Alert, ActivityIndicator,
@@ -35,7 +36,7 @@ export default function LibrarianFinesScreen() {
     finally { setLoading(false); setRefreshing(false); }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useAutoRefreshOnFocus(load);
 
   const handlePay = (id: number, memberName: string, amount: string) => {
     Alert.alert(

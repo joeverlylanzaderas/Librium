@@ -20,6 +20,7 @@ import { Feather } from '@expo/vector-icons';
 import { getLoans, createLoan, verifyReturn, getBooks, getUsers } from '../../services/api';
 import { Card, Empty, Loading } from '../../components/UI';
 import { useAlert } from '../../components/AlertProvider';
+import { useAutoRefreshOnFocus } from '../../hooks/useAutoRefreshOnFocus';
 import SidebarLayout from '../../components/SidebarLayout';
 import { Fonts } from '../../constants/theme';
 
@@ -205,7 +206,7 @@ export default function LoansScreen() {
     }
   };
 
-  useEffect(() => { load(); }, [load]);
+  useAutoRefreshOnFocus(load);
   useEffect(() => { if (issueModal) loadLookups(); }, [issueModal]);
 
   const resetForm = () => {

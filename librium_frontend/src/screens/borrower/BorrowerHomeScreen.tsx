@@ -6,8 +6,9 @@ import {
   Modal, ScrollView, Image, useWindowDimensions, Platform,
 } from 'react-native';
 import { useAlert } from '../../components/AlertProvider';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
+import { useAutoRefreshOnFocus } from '../../hooks/useAutoRefreshOnFocus';
 import {
   getBooks, getCategories, getDepartments, createBorrowRequest, createReservation,
   getLoans, getReservations, getBorrowRequests, getFines,
@@ -412,8 +413,7 @@ export default function BorrowerHomeScreen() {
 
   const load = useCallback(async () => { await Promise.all([loadStats(), loadBooks()]); }, [loadStats, loadBooks]);
 
-  useEffect(() => { load(); }, [load]);
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useAutoRefreshOnFocus(load);
 
   // ── Engine matching Advanced Search Parameters ─────────────────
   const filtered = books.filter((b) => {

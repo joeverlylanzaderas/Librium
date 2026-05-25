@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { getFines, payFine } from '../../services/api';
 import { C, Badge, Empty, Loading } from '../../components/UI';
+import { useAutoRefreshOnFocus } from '../../hooks/useAutoRefreshOnFocus';
 
 type Fine = {
   id:          number;
@@ -30,7 +31,7 @@ export default function BorrowerFinesScreen() {
     finally { setLoading(false); setRefreshing(false); }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useAutoRefreshOnFocus(load);
 
   const handlePay = (id: number, amount: string, title: string) => {
     Alert.alert(

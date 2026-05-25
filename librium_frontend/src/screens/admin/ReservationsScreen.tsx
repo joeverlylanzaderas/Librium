@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Text, ScrollView, StyleSheet, RefreshControl, View, Platform, useWindowDimensions, Alert, TouchableOpacity, Modal, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getReservations, fulfillReservation } from '../../services/api';
+import { useAutoRefreshOnFocus } from '../../hooks/useAutoRefreshOnFocus';
 import { Empty, Loading } from '../../components/UI';
 
 const P = {
@@ -59,7 +60,7 @@ export default function ReservationsScreen() {
     finally { setLoading(false); setRefreshing(false); }
   };
 
-  useEffect(() => { load(); }, []);
+  useAutoRefreshOnFocus(load);
 
   const openFulfillModal = (reservation: Reservation) => {
     setSelectedReservation(reservation);

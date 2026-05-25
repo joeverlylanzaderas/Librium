@@ -5,7 +5,7 @@ import {
   ScrollView, Alert, useWindowDimensions, Platform,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
+import { useAutoRefreshOnFocus } from '../../hooks/useAutoRefreshOnFocus';
 import { getBookmarks, deleteBookmark, createBorrowRequest, createReservation, getLoans, getReservations, getBorrowRequests } from '../../services/api';
 import { Empty, Loading } from '../../components/UI';
 
@@ -154,8 +154,7 @@ export default function BorrowerBookmarkScreen() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useAutoRefreshOnFocus(load);
 
   const handleRemove = async (item: BookmarkItem) => {
     setActing(item.id);

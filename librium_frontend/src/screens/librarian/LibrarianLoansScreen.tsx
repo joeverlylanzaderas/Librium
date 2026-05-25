@@ -9,6 +9,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { getLoans, createLoan, deleteLoan, verifyReturn, getBooks, getUsers } from '../../services/api';
 import { Empty, Loading } from '../../components/UI';
+import { useAutoRefreshOnFocus } from '../../hooks/useAutoRefreshOnFocus';
 import { Fonts } from '../../constants/theme';
 
 // ── Types ─────────────────────────────────────────────────────────
@@ -542,7 +543,7 @@ export default function LibrarianLoansScreen() {
     finally { setLoading(false); setRefreshing(false); }
   }, []);
 
-  useEffect(() => { setLoading(true); load(); }, [load]);
+  useAutoRefreshOnFocus(load);
 
   const filtered = useMemo(() => {
     let r = loans;

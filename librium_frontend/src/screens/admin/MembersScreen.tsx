@@ -8,6 +8,7 @@ import { Feather } from '@expo/vector-icons';
 import { getUsers, updateUser, deleteUser, createUser } from '../../services/api';
 import { Card, Empty, Loading, Btn } from '../../components/UI';
 import { useAlert } from '../../components/AlertProvider';
+import { useAutoRefreshOnFocus } from '../../hooks/useAutoRefreshOnFocus';
 // Removed SidebarLayout import since layout is managed globally
 import { Fonts } from '../../constants/theme';
 
@@ -72,7 +73,7 @@ export default function MembersScreen() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useAutoRefreshOnFocus(load);
 
   const filtered = users.filter((u) => {
     const matchRole = roleFilter === 'all' || u.role === roleFilter;

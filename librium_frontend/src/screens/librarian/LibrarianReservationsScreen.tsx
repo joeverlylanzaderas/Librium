@@ -6,6 +6,7 @@ import {
   Platform, useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAutoRefreshOnFocus } from '../../hooks/useAutoRefreshOnFocus';
 import { Empty, Loading } from '../../components/UI';
 
 // ── Warm library palette (matches admin ReservationsScreen) ───
@@ -63,7 +64,9 @@ export default function LibrarianReservationsScreen() {
     finally { setLoading(false); setRefreshing(false); }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+    useEffect(() => { load(); }, [load]);
+
+    useAutoRefreshOnFocus(load);
 
   const openFulfillModal = (reservation: Reservation) => {
     setSelectedReservation(reservation);

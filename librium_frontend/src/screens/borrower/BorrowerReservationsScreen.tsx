@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { getReservations, cancelReservation } from '../../services/api';
 import { C, Badge, Empty, Loading } from '../../components/UI';
+import { useAutoRefreshOnFocus } from '../../hooks/useAutoRefreshOnFocus';
 
 type Reservation = {
   id:             number;
@@ -39,8 +40,7 @@ export default function BorrowerReservationsScreen() {
     } catch (e) { }
     finally { setLoading(false); setRefreshing(false); }
   }, []);
-
-  useEffect(() => { load(); }, [load]);
+  useAutoRefreshOnFocus(load);
 
   const handleCancel = (id: number, title: string) => {
     Alert.alert(
