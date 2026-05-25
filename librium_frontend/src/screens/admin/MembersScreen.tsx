@@ -7,6 +7,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { getUsers, updateUser, deleteUser, createUser } from '../../services/api';
 import { Card, Empty, Loading, Btn } from '../../components/UI';
+import { useAlert } from '../../components/AlertProvider';
 // Removed SidebarLayout import since layout is managed globally
 import { Fonts } from '../../constants/theme';
 
@@ -25,18 +26,6 @@ type User = {
   };
 };
 
-const confirm = (title: string, message: string, onConfirm: () => void) => {
-  if (typeof window !== 'undefined') {
-    if (window.confirm(`${title}\n\n${message}`)) onConfirm();
-  } else {
-    const { Alert } = require('react-native');
-    Alert.alert(title, message, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Confirm', style: 'destructive', onPress: onConfirm },
-    ]);
-  }
-};
-
 const ROLE_THEME: Record<string, { bg: string; text: string; border: string }> = {
   admin: { bg: '#FEF3C7', text: '#D97706', border: '#FCD34D' },
   librarian: { bg: '#EDE9FE', text: '#7C3AED', border: '#DDD6FE' },
@@ -47,6 +36,11 @@ const SEX_LABEL: Record<string, string> = { M: 'Male', F: 'Female', O: 'Other' }
 
 export default function MembersScreen() {
   const { width } = useWindowDimensions();
+  const { showConfirm } = useAlert();
+
+  const confirmModal = (title: string, message: string, onConfirm: () => void) => {
+    showConfirm(title, message, onConfirm, { confirmText: 'Confirm', cancelText: 'Cancel' });
+  };
 
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,7 +65,7 @@ export default function MembersScreen() {
       const data = await getUsers();
       setUsers(data.results ?? data);
     } catch (e) {
-      console.warn('Members structural registry load fault:', e);
+      
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -153,7 +147,7 @@ export default function MembersScreen() {
   };
 
   const handleDelete = (user: User) => {
-    confirm(
+    confirmModal(
       'Purge User Permanently',
       `Permanently delete structural record for "${user.full_name}"? Operational histories will be cleared. This action is irreversible.`,
       async () => {

@@ -61,7 +61,7 @@
     }
 
     if (!res.ok) {
-      console.error(`API Error ${method} ${path}:`, { status: res.status, data });
+      
       throw { status: res.status, data };
     }
 

@@ -137,7 +137,7 @@ export default function DashboardScreen({ navigation }: Props) {
   const [refreshing, setRefreshing] = useState(false);
 
   const load = async () => {
-    try { setStats(await getDashboard()); } catch (e) { console.warn('Dashboard error', e); } finally { setLoading(false); setRefreshing(false); }
+    try { setStats(await getDashboard()); } catch (e) {  } finally { setLoading(false); setRefreshing(false); }
   };
 
   useFocusEffect(useCallback(() => { load(); }, []));

@@ -101,7 +101,7 @@ export default function LibrarianDashboardScreen() {
       const data = await getDashboard();
       setStats(data);
     } catch (e) {
-      console.error('Operational metrics architecture failure:', e);
+      
     } finally {
       setLoading(false);
       setRefreshing(false);

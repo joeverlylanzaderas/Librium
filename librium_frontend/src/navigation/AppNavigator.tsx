@@ -58,8 +58,8 @@ const screenOpts = {
 function AuthStack() {
   return (
     <AuthNav.Navigator id="AuthStack" screenOptions={{ headerShown: false }}>
-      <AuthNav.Screen name="Login" component={LoginScreen} />
-      <AuthNav.Screen name="Register" component={RegisterScreen} />
+      <AuthNav.Screen name="Login" component={LoginScreen} options={{ title: 'Librium | Login' }} />
+      <AuthNav.Screen name="Register" component={RegisterScreen} options={{ title: 'Librium | Register' }} />
     </AuthNav.Navigator>
   );
 }
@@ -67,18 +67,18 @@ function AuthStack() {
 function AdminStack() {
   return (
     <AdminNav.Navigator id="AdminStack" screenOptions={screenOpts}>
-      <AdminNav.Screen name="Dashboard" component={AdminDashboardScreen} options={{ headerShown: false }} />
-      <AdminNav.Screen name="Books" component={AdminBooksScreen} options={{ headerShown: false }} />
-      <AdminNav.Screen name="BorrowRequests" component={AdminBorrowRequestsScreen} options={{ headerShown: false }} />
-      <AdminNav.Screen name="Loans" component={AdminLoansScreen} options={{ headerShown: false }} />
-      <AdminNav.Screen name="Members" component={AdminMembersScreen} options={{ headerShown: false }} />
-      <AdminNav.Screen name="Fines" component={AdminFinesScreen} options={{ headerShown: false }} />
-      <AdminNav.Screen name="Reservations" component={AdminReservationsScreen} options={{ headerShown: false }} />
-      <AdminNav.Screen name="Profile" component={AdminProfileScreen} options={{ headerShown: false }} />
-      <AdminNav.Screen name="Authors" component={AuthorsScreen} options={{ headerShown: false }} />
-      <AdminNav.Screen name="Categories" component={CategoriesScreen} options={{ headerShown: false }} />
-      <AdminNav.Screen name="Departments" component={DepartmentsScreen} options={{ headerShown: false }} />
-      <AdminNav.Screen name="Semesters" component={SemestersScreen} options={{ headerShown: false }} />
+      <AdminNav.Screen name="Dashboard" component={AdminDashboardScreen} options={{ title: 'Admin Dashboard', headerShown: false }} />
+      <AdminNav.Screen name="Books" component={AdminBooksScreen} options={{ title: 'Books', headerShown: false }} />
+      <AdminNav.Screen name="BorrowRequests" component={AdminBorrowRequestsScreen} options={{ title: 'Borrow Requests', headerShown: false }} />
+      <AdminNav.Screen name="Loans" component={AdminLoansScreen} options={{ title: 'Loans', headerShown: false }} />
+      <AdminNav.Screen name="Members" component={AdminMembersScreen} options={{ title: 'Members', headerShown: false }} />
+      <AdminNav.Screen name="Fines" component={AdminFinesScreen} options={{ title: 'Fines', headerShown: false }} />
+      <AdminNav.Screen name="Reservations" component={AdminReservationsScreen} options={{ title: 'Reservations', headerShown: false }} />
+      <AdminNav.Screen name="Profile" component={AdminProfileScreen} options={{ title: 'Profile', headerShown: false }} />
+      <AdminNav.Screen name="Authors" component={AuthorsScreen} options={{ title: 'Authors', headerShown: false }} />
+      <AdminNav.Screen name="Categories" component={CategoriesScreen} options={{ title: 'Categories', headerShown: false }} />
+      <AdminNav.Screen name="Departments" component={DepartmentsScreen} options={{ title: 'Departments', headerShown: false }} />
+      <AdminNav.Screen name="Semesters" component={SemestersScreen} options={{ title: 'Semesters', headerShown: false }} />
     </AdminNav.Navigator>
   );
 }
@@ -86,14 +86,14 @@ function AdminStack() {
 function LibrarianStack() {
   return (
     <LibrarianNav.Navigator id="LibrarianStack" screenOptions={screenOpts}>
-      <LibrarianNav.Screen name="LibrarianDashboard" component={LibrarianDashboardScreen} options={{ headerShown: false }} />
-      <LibrarianNav.Screen name="LibrarianBorrowRequests" component={LibrarianBorrowRequestsScreen} options={{ headerShown: false }} />
-      <LibrarianNav.Screen name="LibrarianLoans" component={LibrarianLoansScreen} options={{ headerShown: false }} />
-      <LibrarianNav.Screen name="LibrarianReservations" component={LibrarianReservationsScreen} options={{ headerShown: false }} />
-      <LibrarianNav.Screen name="LibrarianFines" component={LibrarianFinesScreen} options={{ headerShown: false }} />
-      <LibrarianNav.Screen name="LibrarianBooks" component={LibrarianBooksScreen} options={{ headerShown: false }} />
-      <LibrarianNav.Screen name="LibrarianMembers" component={LibrarianMembersScreen} options={{ headerShown: false }} />
-      <LibrarianNav.Screen name="LibrarianProfile" component={LibrarianProfileScreen} options={{ headerShown: false }} />
+      <LibrarianNav.Screen name="LibrarianDashboard" component={LibrarianDashboardScreen} options={{ title: 'Librarian Dashboard', headerShown: false }} />
+      <LibrarianNav.Screen name="LibrarianBorrowRequests" component={LibrarianBorrowRequestsScreen} options={{ title: 'Borrow Requests', headerShown: false }} />
+      <LibrarianNav.Screen name="LibrarianLoans" component={LibrarianLoansScreen} options={{ title: 'Loans', headerShown: false }} />
+      <LibrarianNav.Screen name="LibrarianReservations" component={LibrarianReservationsScreen} options={{ title: 'Reservations', headerShown: false }} />
+      <LibrarianNav.Screen name="LibrarianFines" component={LibrarianFinesScreen} options={{ title: 'Fines', headerShown: false }} />
+      <LibrarianNav.Screen name="LibrarianBooks" component={LibrarianBooksScreen} options={{ title: 'Books', headerShown: false }} />
+      <LibrarianNav.Screen name="LibrarianMembers" component={LibrarianMembersScreen} options={{ title: 'Members', headerShown: false }} />
+      <LibrarianNav.Screen name="LibrarianProfile" component={LibrarianProfileScreen} options={{ title: 'Profile', headerShown: false }} />
     </LibrarianNav.Navigator>
   );
 }
@@ -101,13 +101,13 @@ function LibrarianStack() {
 function BorrowerStack() {
   return (
     <BorrowerNav.Navigator id="BorrowerStack" screenOptions={screenOpts}>
-      <BorrowerNav.Screen name="BorrowerHome" component={BorrowerHomeScreen} options={{ headerShown: false }} />
-      <BorrowerNav.Screen name="BorrowerLoans" component={BorrowerLoansScreen} options={{ headerShown: false }} />
-      <BorrowerNav.Screen name="BorrowerReservations" component={BorrowerReservationsScreen} options={{ headerShown: false }} />
-      <BorrowerNav.Screen name="BorrowerBookmarks" component={BorrowerBookmarkScreen} options={{ headerShown: false }} />
-      <BorrowerNav.Screen name="BorrowerRequests" component={BorrowerBorrowRequestsScreen} options={{ headerShown: false }} />
-      <BorrowerNav.Screen name="BorrowerFines" component={BorrowerFinesScreen} options={{ headerShown: false }} />
-      <BorrowerNav.Screen name="BorrowerProfile" component={BorrowerProfileScreen} options={{ headerShown: false }} />
+      <BorrowerNav.Screen name="BorrowerHome" component={BorrowerHomeScreen} options={{ title: 'My Library', headerShown: false }} />
+      <BorrowerNav.Screen name="BorrowerLoans" component={BorrowerLoansScreen} options={{ title: 'My Loans', headerShown: false }} />
+      <BorrowerNav.Screen name="BorrowerReservations" component={BorrowerReservationsScreen} options={{ title: 'My Reservations', headerShown: false }} />
+      <BorrowerNav.Screen name="BorrowerBookmarks" component={BorrowerBookmarkScreen} options={{ title: 'My Bookmarks', headerShown: false }} />
+      <BorrowerNav.Screen name="BorrowerRequests" component={BorrowerBorrowRequestsScreen} options={{ title: 'My Requests', headerShown: false }} />
+      <BorrowerNav.Screen name="BorrowerFines" component={BorrowerFinesScreen} options={{ title: 'My Fines', headerShown: false }} />
+      <BorrowerNav.Screen name="BorrowerProfile" component={BorrowerProfileScreen} options={{ title: 'Profile', headerShown: false }} />
     </BorrowerNav.Navigator>
   );
 }

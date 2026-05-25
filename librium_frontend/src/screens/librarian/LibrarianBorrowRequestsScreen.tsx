@@ -48,7 +48,7 @@ export default function LibrarianBorrowRequestsScreen() {
       const data = await getBorrowRequests(filter === 'all' ? undefined : filter);
       setRequests(data);
     } catch (e) {
-      console.error(e);
+      
     } finally {
       setLoading(false);
       setRefreshing(false);

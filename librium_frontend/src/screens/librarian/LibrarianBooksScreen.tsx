@@ -8,22 +8,12 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { Feather } from '@expo/vector-icons';
 import { Card, Btn, Empty, Loading, Badge, C } from '../../components/UI';
+import { useAlert } from '../../components/AlertProvider';
 import { Fonts } from '../../constants/theme';
 import {
   getBooks, createBook, updateBook, deleteBook,
   getAuthors, getCategories, getDepartments,
 } from '../../services/api';
-
-const confirm = (title: string, message: string, onConfirm: () => void) => {
-  if (Platform.OS === 'web' && typeof window !== 'undefined') {
-    if (window.confirm(`${title}\n\n${message}`)) onConfirm();
-  } else {
-    Alert.alert(title, message, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: onConfirm },
-    ]);
-  }
-};
 
 const AVAIL_COLORS = {
   available: { bg: '#E6F4EA', text: '#137333', border: '#B7DFC4' },
@@ -32,6 +22,11 @@ const AVAIL_COLORS = {
 
 export default function LibrarianBooksScreen() {
   const { width } = useWindowDimensions();
+  const { showConfirm } = useAlert();
+
+  const confirmModal = (title: string, message: string, onConfirm: () => void) => {
+    showConfirm(title, message, onConfirm, { confirmText: 'Delete', cancelText: 'Cancel' });
+  };
 
   const [items, setItems]           = useState<any[]>([]);
   const [authors, setAuthors]       = useState<any[]>([]);
@@ -84,7 +79,7 @@ export default function LibrarianBooksScreen() {
       setCategories(cats.results ?? cats);
       setDepartments(depts.results ?? depts);
     } catch (e) {
-      console.error(e);
+      
       Alert.alert('Error', 'Failed to load book catalog.');
     } finally {
       setLoading(false);
@@ -154,7 +149,7 @@ export default function LibrarianBooksScreen() {
         const fileBlob = await responseBlob.blob();
         data.append('file', fileBlob, form.cover_image_file.name);
       } catch (blobError) {
-        console.error('Error constructing binary blob object for web:', blobError);
+        
         setUploadingImage(false);
         return null;
       }
@@ -182,7 +177,7 @@ export default function LibrarianBooksScreen() {
       const dataJson = JSON.parse(responseText);
       return dataJson.secure_url;
     } catch (error: any) {
-      console.error('Cloudinary Upload Error:', error);
+      
       Alert.alert('Upload Failed', 'Could not upload image. Please try again.');
       return null;
     } finally {
@@ -233,7 +228,7 @@ export default function LibrarianBooksScreen() {
   };
 
   const handleDelete = (item: any) => {
-    confirm(
+    confirmModal(
       'Confirm Delete',
       `Permanently remove "${item.title}" from the catalog?`,
       async () => {
@@ -391,7 +386,7 @@ export default function LibrarianBooksScreen() {
                     <View style={s.colStatus}>
                       <View style={[s.tablePill, { backgroundColor: badge.bg, borderColor: badge.border }]}>
                         <Text style={[s.tablePillTxt, { color: badge.text }]}>
-                          {avail ? 'Available' : 'On Loan'}
+                          {avail ? 'Available' : 'Unavailable'}
                         </Text>
                       </View>
                     </View>

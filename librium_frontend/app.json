@@ -19,6 +19,16 @@
           "data": [
             {
               "scheme": "librium"
+            },
+            {
+              "scheme": "https",
+              "host": "librium-web.netlify.app",
+              "pathPrefix": "/"
+            },
+            {
+              "scheme": "https",
+              "host": "librium.onrender.com",
+              "pathPrefix": "/"
             }
           ],
           "category": ["BROWSABLE", "DEFAULT"]

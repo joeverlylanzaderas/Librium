@@ -36,7 +36,7 @@ export default function BorrowerReservationsScreen() {
     try {
       const data = await getReservations();
       setReservations(data);
-    } catch (e) { console.error(e); }
+    } catch (e) { }
     finally { setLoading(false); setRefreshing(false); }
   }, []);
 

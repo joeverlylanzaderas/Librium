@@ -160,7 +160,7 @@ function IssueLoanModal({ visible, onClose, onIssued }: { visible: boolean; onCl
         setBooksLookup(Array.isArray(b) ? b : (b.results ?? []));
         setUsersLookup(Array.isArray(u) ? u : (u.results ?? []));
       })
-      .catch((e) => console.warn('Lookup failed:', e))
+      .catch(() => {})
       .finally(() => setLookupsLoading(false));
   }, [visible]);
 
@@ -538,7 +538,7 @@ export default function LibrarianLoansScreen() {
         return new Date(b.loan_date).getTime() - new Date(a.loan_date).getTime();
       });
       setLoans(sorted);
-    } catch (e) { console.error(e); }
+    } catch (e) { }
     finally { setLoading(false); setRefreshing(false); }
   }, []);
 

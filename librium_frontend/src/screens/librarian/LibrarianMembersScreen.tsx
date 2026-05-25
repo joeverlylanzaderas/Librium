@@ -36,7 +36,7 @@ export default function LibrarianMembersScreen() {
     try {
       const data = await getUsers();
       setMembers(data.filter((u: Member) => u.role === 'member'));
-    } catch (e) { console.error(e); }
+    } catch (e) { }
     finally { setLoading(false); setRefreshing(false); }
   }, []);
 

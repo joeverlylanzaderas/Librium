@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, RefreshControl, Alert, Platform, useWindowDimensions, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getFines, payFine } from '../../services/api';
+import { useAlert } from '../../components/AlertProvider';
 import { Empty, Loading } from '../../components/UI';
 
 const P = {
@@ -42,7 +43,7 @@ export default function FinesScreen() {
       const data = await getFines();
       setFines(data.results ?? data);
     } catch (e) {
-      console.warn(e);
+      
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -51,20 +52,13 @@ export default function FinesScreen() {
 
   useEffect(() => { load(); }, []);
 
+  const { showAlert, showConfirm } = useAlert();
+
   const handlePay = (id: number, amount: string) => {
     const title = 'Mark as Paid';
     const msg = `Mark ₱${parseFloat(amount).toFixed(2)} fine as paid?`;
 
-    if (Platform.OS === 'web') {
-      if (window.confirm(`${title}\n\n${msg}`)) {
-        executePay(id);
-      }
-    } else {
-      Alert.alert(title, msg, [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Paid', onPress: () => executePay(id) },
-      ]);
-    }
+    showConfirm(title, msg, () => executePay(id), { confirmText: 'Paid', cancelText: 'Cancel' });
   };
 
   const executePay = async (id: number) => {
@@ -73,11 +67,7 @@ export default function FinesScreen() {
       load();
     } catch (e: any) {
       const errorMsg = e?.data ? JSON.stringify(e.data) : 'Could not update record.';
-      if (Platform.OS === 'web') {
-        window.alert(`Error: ${errorMsg}`);
-      } else {
-        Alert.alert('Error', errorMsg);
-      }
+      showAlert('Error', errorMsg);
     }
   };
 

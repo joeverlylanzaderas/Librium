@@ -6,6 +6,7 @@ import {
   RefreshControl, TouchableOpacity, ActivityIndicator, useWindowDimensions, TextInput
 } from 'react-native';
 import { Card, Btn, Empty, Loading, SectionHeader, Badge } from '../../components/UI';
+import { useAlert } from '../../components/AlertProvider';
 import { Fonts } from '../../constants/theme';
 import { Feather } from '@expo/vector-icons';
 import {
@@ -14,17 +15,6 @@ import {
   getDepartments, createDepartment, updateDepartment, deleteDepartment,
   getSemesters, createSemester, updateSemester, deleteSemester, setActiveSemester,
 } from '../../services/api';
-
-const confirm = (title: string, message: string, onConfirm: () => void) => {
-  if (typeof window !== 'undefined') {
-    if (window.confirm(`${title}\n\n${message}`)) onConfirm();
-  } else {
-    Alert.alert(title, message, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: onConfirm },
-    ]);
-  }
-};
 
 // ─────────────────────────────────────────────────────────────
 //  Generic CRUD factory — Authors, Categories, Departments
@@ -50,6 +40,10 @@ function makeListScreen(
     const [form, setForm]         = useState<Record<string, string>>(
       Object.fromEntries(fields.map((f) => [f.key, '']))
     );
+    const { showConfirm } = useAlert();
+    const confirmModal = (title: string, message: string, onConfirm: () => void) => {
+      showConfirm(title, message, onConfirm, { confirmText: 'Delete', cancelText: 'Cancel' });
+    };
 
     const load = async () => {
       try {
@@ -93,7 +87,7 @@ function makeListScreen(
 
     const handleDelete = (item: any) => {
       const label = item[fields[0].key] ?? 'this item';
-      confirm(
+      confirmModal(
         'Confirm Delete',
         `Delete "${label}"? This cannot be undone.`,
         async () => {
@@ -277,6 +271,10 @@ export const DepartmentsScreen = makeListScreen(
 
 export function SemestersScreen() {
   const { width } = useWindowDimensions();
+  const { showConfirm } = useAlert();
+  const confirmModal = (title: string, message: string, onConfirm: () => void) => {
+    showConfirm(title, message, onConfirm, { confirmText: 'Delete', cancelText: 'Cancel' });
+  };
   const [items, setItems]           = useState<any[]>([]);
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -320,7 +318,7 @@ export function SemestersScreen() {
       Alert.alert('Notice', 'Deactivate this semester before deleting it.');
       return;
     }
-    confirm(
+    confirmModal(
       'Confirm Delete',
       `Delete "${formatSemester(sem)}"?`,
       async () => {

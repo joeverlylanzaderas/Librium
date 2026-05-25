@@ -26,7 +26,7 @@ export default function BorrowerFinesScreen() {
     try {
       const data = await getFines();
       setFines(data);
-    } catch (e) { console.error(e); }
+    } catch (e) { }
     finally { setLoading(false); setRefreshing(false); }
   }, []);
 

@@ -19,6 +19,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { getLoans, createLoan, verifyReturn, getBooks, getUsers } from '../../services/api';
 import { Card, Empty, Loading } from '../../components/UI';
+import { useAlert } from '../../components/AlertProvider';
 import SidebarLayout from '../../components/SidebarLayout';
 import { Fonts } from '../../constants/theme';
 
@@ -61,17 +62,6 @@ const STATUS_MAP: Record<string, { bg: string; text: string; border: string; lbl
   verified: { bg: '#E6F4EA', text: '#137333', border: '#B7DFC4', lbl: 'RETURN VERIFIED' },
   rejected: { bg: '#FFF5F5', text: '#8A2B2B', border: '#FEB2B2', lbl: 'RETURN REJECTED' },
   disputed: { bg: '#EDE9FE', text: '#7C3AED', border: '#DDD6FE', lbl: 'DISPUTED HOLD' },
-};
-
-const confirm = (title: string, message: string, onConfirm: () => void) => {
-  if (typeof window !== 'undefined') {
-    if (window.confirm(`${title}\n\n${message}`)) onConfirm();
-  } else {
-    Alert.alert(title, message, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Confirm', style: 'destructive', onPress: onConfirm },
-    ]);
-  }
 };
 
 // ── Standalone picker modal ────────────────────────────────────────────────
@@ -162,6 +152,11 @@ const pm = StyleSheet.create({
 // ── Main screen ────────────────────────────────────────────────────────────
 export default function LoansScreen() {
   const { width } = useWindowDimensions();
+  const { showConfirm } = useAlert();
+
+  const confirmModal = (title: string, message: string, onConfirm: () => void) => {
+    showConfirm(title, message, onConfirm, { confirmText: 'Confirm', cancelText: 'Cancel' });
+  };
 
   const [loans, setLoans]           = useState<Loan[]>([]);
   const [loading, setLoading]       = useState(true);
@@ -190,7 +185,7 @@ export default function LoansScreen() {
       const list: Loan[] = Array.isArray(d) ? d : (d.results ?? []);
       setLoans(list);
     } catch (e) {
-      console.warn('Failed to load loans:', e);
+      
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -204,7 +199,7 @@ export default function LoansScreen() {
       setBooksLookup(Array.isArray(booksData) ? booksData : (booksData.results ?? []));
       setUsersLookup(Array.isArray(usersData) ? usersData : (usersData.results ?? []));
     } catch (e) {
-      console.warn('Lookup load failed:', e);
+      
     } finally {
       setLookupsLoading(false);
     }
@@ -244,7 +239,7 @@ export default function LoansScreen() {
   };
 
   const handleAction = (id: number, status: 'verified' | 'rejected', txt: string) => {
-    confirm(`${status === 'verified' ? 'Verify' : 'Reject'} Return`, txt, async () => {
+    confirmModal(`${status === 'verified' ? 'Verify' : 'Reject'} Return`, txt, async () => {
       try {
         await verifyReturn(id, status);
         await load();

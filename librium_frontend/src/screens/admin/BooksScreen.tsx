@@ -8,6 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import { Card, Btn, Empty, Loading } from '../../components/UI';
+import { useAlert } from '../../components/AlertProvider';
 import { Fonts } from '../../constants/theme';
 import { AdminStackParamList } from '../../navigation/AppNavigator';
 import {
@@ -19,17 +20,6 @@ type Props = {
   navigation: NativeStackNavigationProp<AdminStackParamList, 'Books'>;
 };
 
-const confirm = (title: string, message: string, onConfirm: () => void) => {
-  if (typeof window !== 'undefined') {
-    if (window.confirm(`${title}\n\n${message}`)) onConfirm();
-  } else {
-    Alert.alert(title, message, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: onConfirm },
-    ]);
-  }
-};
-
 const AVAIL_COLORS = {
   available: { bg: '#E6F4EA', text: '#137333', border: '#B7DFC4' },
   on_loan:   { bg: '#FCE8E6', text: '#8A2B2B', border: '#F5C2BC' },
@@ -37,7 +27,12 @@ const AVAIL_COLORS = {
 
 export default function BooksScreen({ navigation }: Props) {
   const { width } = useWindowDimensions();
+  const { showConfirm } = useAlert();
   
+  const confirmModal = (title: string, message: string, onConfirm: () => void) => {
+    showConfirm(title, message, onConfirm, { confirmText: 'Delete', cancelText: 'Cancel' });
+  };
+
   // Responsive design layout boundaries
   const isMobile = width < 600;
   const isTablet = width >= 600 && width < 1024;
@@ -141,7 +136,7 @@ export default function BooksScreen({ navigation }: Props) {
         const fileBlob = await responseBlob.blob();
         data.append('file', fileBlob, form.cover_image_file.name);
       } catch (blobError) {
-        console.error('Error constructing binary blob object for web:', blobError);
+        
         setUploadingImage(false);
         return null;
       }
@@ -169,7 +164,7 @@ export default function BooksScreen({ navigation }: Props) {
       const dataJson = JSON.parse(responseText);
       return dataJson.secure_url;
     } catch (error: any) {
-      console.error('Cloudinary Upload Error:', error);
+      
       Alert.alert('Upload Failed', 'Could not upload image. Please try again.');
       return null;
     } finally {
@@ -220,7 +215,7 @@ export default function BooksScreen({ navigation }: Props) {
   };
 
   const handleDelete = (item: any) => {
-    confirm(
+    confirmModal(
       'Confirm Delete',
       `Permanently remove "${item.title}" from the catalog?`,
       async () => {

@@ -5,6 +5,7 @@ import {
   TextInput, RefreshControl, Alert, ActivityIndicator,
   Modal, ScrollView, Image, useWindowDimensions, Platform,
 } from 'react-native';
+import { useAlert } from '../../components/AlertProvider';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import {
@@ -330,6 +331,7 @@ const md = StyleSheet.create({
 export default function BorrowerHomeScreen() {
   const { user, signOut } = useAuth();
   const navigation        = useNavigation<any>();
+  const { showConfirm }   = useAlert();
   const { width }         = useWindowDimensions();
 
   const isDesktop = width >= 768;
@@ -390,7 +392,7 @@ export default function BorrowerHomeScreen() {
         pending_requests: activeRequests.length,
         unpaid_fines:     fines.filter((f: any) => !f.paid).reduce((sum: number, f: any) => sum + parseFloat(f.amount || '0'), 0),
       });
-    } catch (e) { console.error('Stats or Bookmarks error', e); }
+    } catch (e) { }
     finally { setStatsLoading(false); }
   }, []);
 
@@ -404,7 +406,7 @@ export default function BorrowerHomeScreen() {
       setBooks(booksData.map((b: any) => ({ ...b, cover_image: b.cover_image || b.cover_image_url || null })));
       setCategories(catData);
       setDepartments(deptData);
-    } catch (e) { console.error(e); }
+    } catch (e) { }
     finally { setLoading(false); setRefreshing(false); }
   }, []);
 
@@ -458,7 +460,7 @@ export default function BorrowerHomeScreen() {
         setBookmarks((prev) => [...prev, newBookmarkRes]);
       }
     } catch (e: any) {
-      console.error("Bookmark mutation failed", e);
+      
       Alert.alert('Bookmark Error', 'Could not sync favorite state with the cloud database right now.');
       // Re-sync with actual data if API failure happens
       const freshBookmarks = await getBookmarks().catch(() => bookmarks);
@@ -478,19 +480,22 @@ export default function BorrowerHomeScreen() {
       return;
     }
     if (!book.available) {
-      const confirmReserve = window.confirm
-        ? window.confirm(`"${book.title}" is currently on loan. Would you like to join the waitlist?`)
-        : true;
-      if (confirmReserve) {
-        setActing(book.id);
-        try {
-          await createReservation({ book: book.id });
-          Alert.alert('Reserved', 'You have been added to the waitlist.');
-          await load();
-        } catch (e: any) {
-          Alert.alert('Error', e?.data?.detail || e?.data?.error || e?.data?.book?.[0] || 'Could not create reservation.');
-        } finally { setActing(null); }
-      }
+      showConfirm(
+        `"${book.title}" is currently on loan. Would you like to join the waitlist?`,
+        'This will add you to the waitlist for the next available copy.',
+        async () => {
+          setActing(book.id);
+          try {
+            await createReservation({ book: book.id });
+            Alert.alert('Reserved', 'You have been added to the waitlist.');
+            await load();
+          } catch (e: any) {
+            Alert.alert('Error', e?.data?.detail || e?.data?.error || e?.data?.book?.[0] || 'Could not create reservation.');
+          } finally {
+            setActing(null);
+          }
+        }
+      );
       return;
     }
     setActing(book.id);

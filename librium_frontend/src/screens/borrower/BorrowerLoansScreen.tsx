@@ -6,6 +6,7 @@ import {
   useWindowDimensions, Platform, KeyboardAvoidingView, ScrollView
 } from 'react-native';
 import { getLoans, requestReturn } from '../../services/api';
+import { useAlert } from '../../components/AlertProvider';
 import { C, Badge, Empty, Loading } from '../../components/UI';
 
 type Loan = {
@@ -60,7 +61,7 @@ export default function BorrowerLoansScreen() {
     try {
       const data = await getLoans();
       setLoans(data);
-    } catch (e) { console.error(e); }
+    } catch (e) { }
     finally { setLoading(false); setRefreshing(false); }
   }, []);
 
@@ -72,22 +73,19 @@ export default function BorrowerLoansScreen() {
     setReturnModal(true);
   };
 
+  const { showAlert } = useAlert();
+
   const handleRequestReturn = async () => {
     if (!returnLoan) return;
     setActing(returnLoan.id);
     try {
       await requestReturn(returnLoan.id, returnNotes);
       setReturnModal(false);
-      
-      if (Platform.OS === 'web') {
-        alert('Your return request has been submitted. A librarian will verify the physical return.');
-      } else {
-        Alert.alert('Return Requested', 'Your return request has been submitted. A librarian will verify the physical return.');
-      }
+      showAlert('Return Requested', 'Your return request has been submitted. A librarian will verify the physical return.');
       load();
     } catch (e: any) {
       const errMsg = e?.data?.error ?? 'Could not submit return request.';
-      if (Platform.OS === 'web') alert(errMsg); else Alert.alert('Error', errMsg);
+      showAlert('Error', errMsg);
     } finally { setActing(null); }
   };
 

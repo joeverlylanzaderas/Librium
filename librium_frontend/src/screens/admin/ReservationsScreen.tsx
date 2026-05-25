@@ -55,7 +55,7 @@ export default function ReservationsScreen() {
     try {
       const data = await getReservations();
       setItems(data.results ?? data);
-    } catch (e) { console.warn(e); }
+    } catch (e) { }
     finally { setLoading(false); setRefreshing(false); }
   };
 
@@ -77,7 +77,7 @@ export default function ReservationsScreen() {
       Alert.alert('Success', 'Loan created successfully!');
       await load();
     } catch (e: any) {
-      console.error('Error:', e);
+      
       const errorMsg = e?.data?.error || e?.data?.detail || 'Could not create loan. Make sure the book is available.';
       Alert.alert('Error', errorMsg);
     } finally {

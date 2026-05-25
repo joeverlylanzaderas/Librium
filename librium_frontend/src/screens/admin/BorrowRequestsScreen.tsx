@@ -1,6 +1,6 @@
 // screens/admin/BorrowRequestsScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { 
+import {
   View, 
   Text, 
   ScrollView, 
@@ -11,6 +11,7 @@ import {
   useWindowDimensions, 
   Platform 
 } from 'react-native';
+import { useAlert } from '../../components/AlertProvider';
 import { getBorrowRequests, approveBorrowRequest, rejectBorrowRequest } from '../../services/api';
 import { Card, Btn, Badge, Empty, Loading, C } from '../../components/UI';
 import SidebarLayout from '../../components/SidebarLayout';
@@ -37,23 +38,13 @@ type BorrowRequest = {
 const FILTERS = ['pending', 'approved', 'rejected', 'cancelled'] as const;
 type Filter = typeof FILTERS[number];
 
-const confirmAction = (title: string, message: string, onConfirm: () => void) => {
-  if (Platform.OS === 'web' || typeof window !== 'undefined') {
-    if (window.confirm(`${title}\n\n${message}`)) onConfirm();
-  } else {
-    Alert.alert(title, message, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Proceed', onPress: onConfirm },
-    ]);
-  }
-};
-
 export default function BorrowRequestsScreen() {
   const [requests, setRequests]     = useState<BorrowRequest[]>([]);
   const [filter, setFilter]         = useState<Filter>('pending');
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { width } = useWindowDimensions();
+  const { showConfirm } = useAlert();
 
   const isDesktop = width > 768;
 
@@ -62,7 +53,7 @@ export default function BorrowRequestsScreen() {
       const data = await getBorrowRequests(filter);
       setRequests(data.results ?? data);
     } catch (e) { 
-      console.warn(e); 
+      
     } finally { 
       setLoading(false); 
       setRefreshing(false); 
@@ -75,25 +66,25 @@ export default function BorrowRequestsScreen() {
   }, [filter]);
 
   const approve = (id: number) => {
-    confirmAction('Approve Request', 'Confirm the book was handed to the member?', async () => {
+    showConfirm('Approve Request', 'Confirm the book was handed to the member?', async () => {
       try { 
         await approveBorrowRequest(id); 
         load(); 
       } catch (e: any) { 
         Alert.alert('Error', JSON.stringify(e.data || e.message)); 
       }
-    });
+    }, { confirmText: 'Approve', cancelText: 'Cancel' });
   };
 
   const reject = (id: number) => {
-    confirmAction('Reject Request', 'Reject this borrow request?', async () => {
+    showConfirm('Reject Request', 'Reject this borrow request?', async () => {
       try { 
         await rejectBorrowRequest(id); 
         load(); 
       } catch (e: any) { 
         Alert.alert('Error', JSON.stringify(e.data || e.message)); 
       }
-    });
+    }, { confirmText: 'Reject', cancelText: 'Cancel' });
   };
 
   return (

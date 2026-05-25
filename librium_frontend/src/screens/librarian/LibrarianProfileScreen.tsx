@@ -82,7 +82,7 @@ export default function LibrarianProfileScreen() {
       const data = await getMe();
       setMe(data);
     } catch (e) {
-      console.error('Failed fetching librarian profile details:', e);
+      
     } finally {
       setLoading(false);
     }
@@ -150,7 +150,7 @@ export default function LibrarianProfileScreen() {
       await loadProfileData();
       await refreshUser({ profile_picture: cloudData.secure_url });
     } catch (e: any) {
-      console.error('Avatar upload error:', e);
+      
       Alert.alert('Upload Failed', 'Could not update profile picture. Please try again.');
     } finally {
       setUploadingAvatar(false);

@@ -66,7 +66,7 @@ export default function Chatbot() {
         setMessages(data.reverse());
       }
     } catch (error) {
-      console.error('Failed to load chat history:', error);
+      
     }
   };
 
