@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.exceptions import PermissionDenied
 from django.contrib.auth import get_user_model
+from urllib3 import request
 
 from .models import UserProfile
 from .serializers import (
@@ -109,12 +110,21 @@ class CurrentUserRetrieveUpdateAPIView(generics.RetrieveUpdateAPIView):
         user_serializer.is_valid(raise_exception=True)
         user_serializer.save()
 
-        if 'profile' in request.data:
+        profile_data = request.data.get('profile', {})
+        if isinstance(profile_data, str):         
+            import json
+            profile_data = json.loads(profile_data)
+
+        has_profile_fields = profile_data or 'profile_picture' in request.FILES
+        if has_profile_fields:
             profile, _ = UserProfile.objects.get_or_create(user=user)
             profile_serializer = UserProfileUpdateSerializer(
                 profile,
-                data=request.data['profile'],
-                partial=True
+                data={**profile_data, **(
+                    {'profile_picture': request.FILES['profile_picture']}
+                    if 'profile_picture' in request.FILES else {}
+                )},
+                partial=True,
             )
             profile_serializer.is_valid(raise_exception=True)
             profile_serializer.save()
