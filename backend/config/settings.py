@@ -11,7 +11,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'fallback-dev-secret-key-change-in-pro
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'librium.onrender.com']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'librium.onrender.com', 'librium-web.netlify.app']
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = True  # development only
