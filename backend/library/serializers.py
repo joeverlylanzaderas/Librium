@@ -115,6 +115,7 @@ class BookSerializer(serializers.ModelSerializer):
             'available',
             'cover_image',
             'description',
+            'is_bookmarked', 
         ]
         
     def get_is_bookmarked(self, obj):
