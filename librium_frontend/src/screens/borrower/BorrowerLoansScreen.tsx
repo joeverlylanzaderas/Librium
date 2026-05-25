@@ -3,6 +3,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   RefreshControl, Alert, ActivityIndicator, TextInput, Modal,
+  useWindowDimensions, Platform, KeyboardAvoidingView, ScrollView
 } from 'react-native';
 import { getLoans, requestReturn } from '../../services/api';
 import { C, Badge, Empty, Loading } from '../../components/UI';
@@ -46,10 +47,14 @@ export default function BorrowerLoansScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [acting, setActing]         = useState<number | null>(null);
 
-  // return request modal
+  // Return request modal states
   const [returnModal, setReturnModal] = useState(false);
   const [returnLoan, setReturnLoan]   = useState<Loan | null>(null);
   const [returnNotes, setReturnNotes] = useState('');
+
+  // Get dynamic layout context dimensions
+  const { width } = useWindowDimensions();
+  const isWebOrTablet = width > 768; // Standard responsive web break-point
 
   const load = useCallback(async () => {
     try {
@@ -73,10 +78,16 @@ export default function BorrowerLoansScreen() {
     try {
       await requestReturn(returnLoan.id, returnNotes);
       setReturnModal(false);
-      Alert.alert('Return Requested', 'Your return request has been submitted. A librarian will verify the physical return.');
+      
+      if (Platform.OS === 'web') {
+        alert('Your return request has been submitted. A librarian will verify the physical return.');
+      } else {
+        Alert.alert('Return Requested', 'Your return request has been submitted. A librarian will verify the physical return.');
+      }
       load();
     } catch (e: any) {
-      Alert.alert('Error', e?.data?.error ?? 'Could not submit return request.');
+      const errMsg = e?.data?.error ?? 'Could not submit return request.';
+      if (Platform.OS === 'web') alert(errMsg); else Alert.alert('Error', errMsg);
     } finally { setActing(null); }
   };
 
@@ -118,7 +129,7 @@ export default function BorrowerLoansScreen() {
         <FlatList
           data={filtered}
           keyExtractor={(i) => String(i.id)}
-          contentContainerStyle={{ padding: 14, paddingBottom: 32 }}
+          contentContainerStyle={[s.listContainer, isWebOrTablet && s.listContainerWeb]}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -153,7 +164,7 @@ export default function BorrowerLoansScreen() {
                 />
               </View>
 
-              {/* Action button */}
+              {/* Action buttons */}
               {item.return_status === 'none' && (
                 <TouchableOpacity
                   style={s.returnBtn}
@@ -183,46 +194,74 @@ export default function BorrowerLoansScreen() {
         />
       )}
 
-      {/* Return request modal */}
-      <Modal visible={returnModal} animationType="slide" transparent onRequestClose={() => setReturnModal(false)}>
-        <View style={s.modalOverlay}>
-          <View style={s.modalSheet}>
-            <Text style={s.modalTitle}>Request Return</Text>
-            <Text style={s.modalSub} numberOfLines={2}>{returnLoan?.book_title}</Text>
-            <Text style={s.modalNote}>
-              Submitting this request notifies the librarian that you are ready to return the book.
-              Please bring the book to the library desk.
-            </Text>
-            <Text style={s.inputLabel}>Notes (optional)</Text>
-            <TextInput
-              style={s.textArea}
-              placeholder="Any notes for the librarian..."
-              placeholderTextColor={C.muted}
-              value={returnNotes}
-              onChangeText={setReturnNotes}
-              multiline
-              numberOfLines={3}
-            />
-            <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
-              <TouchableOpacity
-                style={[s.modalBtn, { backgroundColor: C.card, borderWidth: 1, borderColor: C.border, flex: 1 }]}
-                onPress={() => setReturnModal(false)}
-              >
-                <Text style={{ color: C.sub, fontWeight: '600' }}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[s.modalBtn, { backgroundColor: C.primary, flex: 1 }]}
-                onPress={handleRequestReturn}
-                disabled={!!acting}
-              >
-                {acting
-                  ? <ActivityIndicator color="#fff" size="small" />
-                  : <Text style={{ color: '#fff', fontWeight: '700' }}>Submit</Text>
-                }
-              </TouchableOpacity>
+      {/* Fully Responsive Overlay Modal */}
+      <Modal 
+        visible={returnModal} 
+        animationType={isWebOrTablet ? "fade" : "slide"} 
+        transparent 
+        onRequestClose={() => setReturnModal(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+          style={s.modalOverlay}
+        >
+          <ScrollView 
+            contentContainerStyle={[
+              s.modalScrollContainer, 
+              isWebOrTablet ? s.modalScrollCenter : s.modalScrollBottom
+            ]}
+            bounces={false}
+          >
+            <View style={[s.modalSheet, isWebOrTablet && s.modalSheetWeb]}>
+              <View style={s.modalHeader}>
+                <Text style={s.modalTitle}>Request Return</Text>
+                {isWebOrTablet && (
+                  <TouchableOpacity onPress={() => setReturnModal(false)} style={s.closeX}>
+                    <Text style={{ color: C.muted, fontSize: 18, fontWeight: '600' }}>×</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              
+              <Text style={s.modalSub} numberOfLines={2}>{returnLoan?.book_title}</Text>
+              
+              <Text style={s.modalNote}>
+                Submitting this request notifies the librarian that you are ready to return the book.
+                Please bring the physical book to the library service desk.
+              </Text>
+              
+              <Text style={s.inputLabel}>Notes (optional)</Text>
+              <TextInput
+                style={s.textArea}
+                placeholder="Any notes for the librarian..."
+                placeholderTextColor={C.muted}
+                value={returnNotes}
+                onChangeText={setReturnNotes}
+                multiline
+                numberOfLines={3}
+              />
+              
+              <View style={s.modalActionRow}>
+                <TouchableOpacity
+                  style={[s.modalBtn, s.cancelBtn]}
+                  onPress={() => setReturnModal(false)}
+                >
+                  <Text style={{ color: C.sub, fontWeight: '600', fontSize: 14 }}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[s.modalBtn, s.submitBtn]}
+                  onPress={handleRequestReturn}
+                  disabled={!!acting}
+                >
+                  {acting ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Submit</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -236,6 +275,8 @@ const s = StyleSheet.create({
   filterTabActive:{ backgroundColor: C.primary, borderColor: C.primary },
   filterTxt:      { color: C.sub, fontSize: 12, fontWeight: '600' },
   filterTxtActive:{ color: '#fff' },
+  listContainer:  { padding: 14, paddingBottom: 32 },
+  listContainerWeb: { maxWidth: 800, width: '100%', alignSelf: 'center' },
   card:           { backgroundColor: C.card, borderRadius: 10, borderWidth: 1, borderColor: C.border, padding: 14, marginBottom: 10 },
   cardOverdue:    { borderColor: C.danger + '88' },
   bookTitle:      { color: C.text, fontSize: 14, fontWeight: '700', lineHeight: 20 },
@@ -244,12 +285,42 @@ const s = StyleSheet.create({
   returnBtn:      { marginTop: 10, backgroundColor: C.primary, borderRadius: 8, paddingVertical: 9, alignItems: 'center' },
   returnTxt:      { color: '#fff', fontWeight: '700', fontSize: 13 },
   pendingNote:    { marginTop: 10, backgroundColor: C.warning + '18', borderRadius: 8, padding: 8 },
-  modalOverlay:   { flex: 1, backgroundColor: '#000000aa', justifyContent: 'flex-end' },
-  modalSheet:     { backgroundColor: C.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
-  modalTitle:     { color: C.text, fontSize: 17, fontWeight: '800', marginBottom: 4 },
+  
+  // Adaptive Overlay Architectures
+  modalOverlay:        { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.4)' },
+  modalScrollContainer: { flexGrow: 1, width: '100%' },
+  modalScrollBottom:   { justifyContent: 'flex-end' },
+  modalScrollCenter:   { justifyContent: 'center', alignItems: 'center', padding: 20 },
+  
+  modalSheet: { 
+    backgroundColor: C.surface, 
+    borderTopLeftRadius: 20, 
+    borderTopRightRadius: 20, 
+    padding: 20,
+    width: '100%',
+    ...Platform.select({
+      web: { outlineStyle: 'none' } as any
+    })
+  },
+  modalSheetWeb: { 
+    maxWidth: 500, 
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: C.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+  },
+  modalHeader:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  closeX:         { padding: 4, marginRight: -4 },
+  modalTitle:     { color: C.text, fontSize: 17, fontWeight: '800' },
   modalSub:       { color: C.sub, fontSize: 13, marginBottom: 10 },
   modalNote:      { color: C.muted, fontSize: 12, lineHeight: 18, marginBottom: 14, backgroundColor: C.card, padding: 10, borderRadius: 8 },
   inputLabel:     { color: C.sub, fontSize: 12, marginBottom: 5, fontWeight: '500' },
   textArea:       { backgroundColor: C.card, color: C.text, borderWidth: 1, borderColor: C.border, borderRadius: 8, padding: 10, fontSize: 13, minHeight: 80, textAlignVertical: 'top' },
-  modalBtn:       { borderRadius: 8, paddingVertical: 12, alignItems: 'center' },
+  modalActionRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
+  modalBtn:       { borderRadius: 8, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
+  cancelBtn:      { backgroundColor: C.card, borderWidth: 1, borderColor: C.border, flex: 1 },
+  submitBtn:      { backgroundColor: C.primary, flex: 1 }
 });

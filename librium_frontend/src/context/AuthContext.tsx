@@ -50,7 +50,7 @@ export const AuthProvider = ({
           setUser(JSON.parse(storedUser));
         }
       } catch (e) {
-        console.log('Restore session error:', e);
+        //console.log('Restore session error:', e);
       } finally {
         setLoading(false);
       }
@@ -61,14 +61,14 @@ export const AuthProvider = ({
 
   // ── Login ────────────────────────────────────────────
   const signIn = async (token: string, userData: User) => {
-    console.log('🔐 SignIn - Setting token:', !!token);
+    //console.log('🔐 SignIn - Setting token:', !!token);
     await setToken(token);
     await AsyncStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
     
     // Verify token was stored
     const savedToken = await AsyncStorage.getItem('token');
-    console.log('🔐 Token saved successfully:', !!savedToken);
+    //console.log('🔐 Token saved successfully:', !!savedToken);
   };
 
   // ── Logout ───────────────────────────────────────────

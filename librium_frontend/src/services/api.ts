@@ -28,7 +28,7 @@
   });
 
   const req = async (method: string, path: string, body?: any) => {
-    // ✅ CRITICAL: Always get fresh token from storage
+    // Always get fresh token from storage
     const token = await AsyncStorage.getItem('token');
     const isFormData = body instanceof FormData;
 
@@ -39,7 +39,7 @@
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         };
 
-    console.log(`📡 ${method} ${path} - Token exists:`, !!token);
+    //console.log(`📡 ${method} ${path} - Token exists:`, !!token);
 
     const res = await fetch(`${BASE_URL}${path}`, {
       method,
@@ -144,6 +144,7 @@
     req('DELETE', `/library/borrow-requests/${id}/`);
   export const createBorrowRequest  = (data: { book: number }) =>
     req('POST', '/library/borrow-requests/', data);
+  
 
   // ── Loans ─────────────────────────────────────────────────────
   export const getLoans      = ()           => req('GET',    '/library/loans/');
@@ -165,7 +166,7 @@
   export const cancelReservation = (id: number) => req('DELETE', `/library/reservations/${id}/`);
   export const fulfillReservation = (id: number) => req('POST',   `/library/reservations/${id}/fulfill/`);
 
-  
+
   // ── Fines ─────────────────────────────────────────────────────
   export const getFines = ()           => req('GET',  '/library/fines/');
   export const getFine  = (id: number) => req('GET',  `/library/fines/${id}/`);

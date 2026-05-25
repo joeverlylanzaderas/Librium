@@ -9,7 +9,16 @@ class IsAdminOrLibrarian(permissions.BasePermission):
 
 
 class IsOwnerOrAdmin(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated
+
     def has_object_permission(self, request, view, obj):
-        if request.user.role == 'admin':
+        if getattr(request.user, 'role', None) == 'admin':
             return True
+        
+        # Check standard fields across your models (member or user)
+        if hasattr(obj, 'member'):
+            return obj.member == request.user
+        if hasattr(obj, 'user'):
+            return obj.user == request.user
         return obj.id == request.user.id

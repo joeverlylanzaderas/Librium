@@ -25,13 +25,11 @@ urlpatterns = [
 
     # ── Semesters ─────────────────────────────────────────────
     path('semesters/',                        views.SemesterListCreateAPIView.as_view(),          name='semester-list-create'),
-    # FIX: set-active before <int:pk> — static paths must precede dynamic ones
     path('semesters/<int:pk>/set-active/',    views.SemesterSetActiveAPIView.as_view(),           name='semester-set-active'),
     path('semesters/<int:pk>/',               views.SemesterRetrieveUpdateDestroyAPIView.as_view(), name='semester-detail'),
 
     # ── Borrow Requests ───────────────────────────────────────
     path('borrow-requests/',                    views.BorrowRequestListCreateAPIView.as_view(),    name='borrow-request-list-create'),
-    # FIX: action paths before <int:pk>
     path('borrow-requests/<int:pk>/approve/',   views.BorrowRequestApproveAPIView.as_view(),       name='borrow-request-approve'),
     path('borrow-requests/<int:pk>/reject/',    views.BorrowRequestRejectAPIView.as_view(),        name='borrow-request-reject'),
     path('borrow-requests/<int:pk>/',           views.BorrowRequestRetrieveDestroyAPIView.as_view(), name='borrow-request-detail'),
@@ -45,8 +43,6 @@ urlpatterns = [
     path('loans/return-verify/',  views.LoanReturnVerifyAPIView.as_view(),   name='loan-return-verify'),
     # matches api.ts: req('GET', '/library/loans/by-semester/?semester=<id>')
     path('loans/by-semester/',    views.LoanBySemesterAPIView.as_view(),     name='loan-by-semester'),
-
-    # FIX: <int:pk> last — after all static loan paths
     path('loans/<int:pk>/', views.LoanRetrieveUpdateDestroyAPIView.as_view(), name='loan-detail'),
 
     # ── Reservations ──────────────────────────────────────────

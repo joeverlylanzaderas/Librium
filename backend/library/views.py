@@ -266,13 +266,11 @@ class BorrowRequestListCreateAPIView(generics.ListCreateAPIView):
                 'Borrow requests are for members only.'
             )
 
-        # FIX: pass context so serializer can read request.user
         serializer = BorrowRequestCreateSerializer(
             data=request.data,
             context={'request': request}
         )
         serializer.is_valid(raise_exception=True)
-        # FIX: do NOT pass member= here; serializer.validate() already injected it
         borrow_request = serializer.save()
 
         return Response(
@@ -316,91 +314,72 @@ class BorrowRequestRetrieveDestroyAPIView(generics.RetrieveDestroyAPIView):
         )
 
 
-class BorrowRequestApproveAPIView(APIView):
-    """
-    POST /api/library/borrow-requests/<pk>/approve/
-    Librarian/admin approves the request → Loan is created automatically.
-    Book is marked unavailable.
-    """
-    permission_classes = [IsAuthenticated, IsAdminOrLibrarian]
+class BorrowRequestApproveAPIView(generics.UpdateAPIView):
+    queryset = BorrowRequest.objects.all()
+    serializer_class = BorrowRequestSerializer
+    permission_classes = [IsAdminOrLibrarian] 
 
-    def post(self, request, pk):
-        borrow_request = get_object_or_404(
-            BorrowRequest.objects.select_related('member', 'book'),
-            pk=pk
-        )
-
-        # FIX: validate status and availability BEFORE creating the loan
+    def update(self, request, *args, **kwargs):
+        # self.get_object() ensures has_object_permission executes cleanly
+        borrow_request = self.get_object()
+        
         if borrow_request.status != 'pending':
             return Response(
-                {'error': f'Cannot approve a request with status "{borrow_request.status}".'},
+                {"error": "This request has already been processed or cancelled."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
+            
         if not borrow_request.book.available:
             return Response(
-                {'error': 'This book is no longer available.'},
+                {"error": "This book is currently unavailable and cannot be loaned out."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        serializer = BorrowRequestActionSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        # FIX: single atomic block wrapping both the loan creation and request update
+        # Process approval safely inside an atomic transaction block
+        from django.db import transaction
         with transaction.atomic():
+            borrow_request.status = 'approved'
+            borrow_request.processed_date = timezone.now().date()
+            borrow_request.processed_by = request.user
+            
+            # Automatically generate the companion system Loan matching your model definitions
             loan = Loan.objects.create(
                 member=borrow_request.member,
                 book=borrow_request.book,
+                loan_date=timezone.now().date()
             )
-
-            today = timezone.now().date()
-            borrow_request.status         = 'approved'
-            borrow_request.processed_date = today
-            borrow_request.processed_by   = request.user
-            borrow_request.loan           = loan
-            if serializer.validated_data.get('notes'):
-                borrow_request.notes = serializer.validated_data['notes']
+            
+            borrow_request.loan = loan
             borrow_request.save()
 
-        return Response(
-            BorrowRequestSerializer(borrow_request).data,
-            status=status.HTTP_200_OK
-        )
+        serializer = self.get_serializer(borrow_request)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class BorrowRequestRejectAPIView(APIView):
-    """
-    POST /api/library/borrow-requests/<pk>/reject/
-    Librarian/admin rejects the request. Book stays available.
-    """
-    permission_classes = [IsAuthenticated, IsAdminOrLibrarian]
+class BorrowRequestRejectAPIView(generics.UpdateAPIView):
+    queryset = BorrowRequest.objects.all()
+    serializer_class = BorrowRequestSerializer
+    permission_classes = [IsAdminOrLibrarian] 
 
-    def post(self, request, pk):
-        borrow_request = get_object_or_404(BorrowRequest, pk=pk)
-
+    def update(self, request, *args, **kwargs):
+        borrow_request = self.get_object()
+        
         if borrow_request.status != 'pending':
             return Response(
-                {'error': f'Cannot reject a request with status "{borrow_request.status}".'},
+                {"error": "This request has already been processed or cancelled."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # FIX: use BorrowRequestActionSerializer (only needs optional notes),
-        # NOT BorrowRequestCreateSerializer which would create a new request
-        serializer = BorrowRequestActionSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        notes = request.data.get('notes', '')
 
-        today = timezone.now().date()
-        borrow_request.status         = 'rejected'
-        borrow_request.processed_date = today
-        borrow_request.processed_by   = request.user
-        if serializer.validated_data.get('notes'):
-            borrow_request.notes = serializer.validated_data['notes']
+        borrow_request.status = 'rejected'
+        borrow_request.processed_date = timezone.now().date()
+        borrow_request.processed_by = request.user
+        borrow_request.notes = notes
         borrow_request.save()
 
-        return Response(
-            BorrowRequestSerializer(borrow_request).data,
-            status=status.HTTP_200_OK
-        )
+        serializer = self.get_serializer(borrow_request)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 # ─────────────────────────────────────────────

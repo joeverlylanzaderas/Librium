@@ -64,7 +64,8 @@ export default function LibrarianBorrowRequestsScreen() {
           onPress: async () => {
             setActing(id);
             try {
-              await approveBorrowRequest(id);
+              // Match api.ts signature: pass an empty string for the optional notes parameter
+              await approveBorrowRequest(id, ''); 
               load();
             } catch (e: any) {
               Alert.alert('Error', e?.data?.error ?? 'Could not approve request.');
@@ -198,25 +199,156 @@ export default function LibrarianBorrowRequestsScreen() {
 }
 
 const s = StyleSheet.create({
-  filterRow:      { flexDirection: 'row', backgroundColor: C.surface, paddingHorizontal: 12, paddingVertical: 8, gap: 6, borderBottomWidth: 1, borderBottomColor: C.border },
-  filterTab:      { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: C.border },
-  filterTabActive:{ backgroundColor: C.primary, borderColor: C.primary },
-  filterTxt:      { color: C.sub, fontSize: 12, fontWeight: '600' },
-  filterTxtActive:{ color: '#fff' },
-  card:           { backgroundColor: C.card, borderRadius: 10, borderWidth: 1, borderColor: C.border, padding: 14, marginBottom: 10 },
-  cardTop:        { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
-  memberName:     { color: C.text, fontSize: 14, fontWeight: '700' },
-  bookTitle:      { color: C.sub, fontSize: 13, marginTop: 2 },
-  date:           { color: C.muted, fontSize: 11, marginTop: 4 },
-  notes:          { color: C.muted, fontSize: 11, marginTop: 2, fontStyle: 'italic' },
-  actions:        { flexDirection: 'row', gap: 8, marginTop: 12 },
-  actionBtn:      { flex: 1, borderWidth: 1, borderRadius: 8, paddingVertical: 8, alignItems: 'center' },
-  actionTxt:      { fontSize: 13, fontWeight: '700' },
-  loanRef:        { color: C.success, fontSize: 11, marginTop: 8, fontWeight: '600' },
-  overlay:        { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 24 },
-  modal:          { backgroundColor: C.surface, borderRadius: 14, padding: 20, borderWidth: 1, borderColor: C.border },
-  modalTitle:     { color: C.text, fontSize: 16, fontWeight: '700', marginBottom: 4 },
-  modalSub:       { color: C.sub, fontSize: 13, marginBottom: 12 },
-  modalInput:     { backgroundColor: C.card, color: C.text, borderWidth: 1, borderColor: C.border, borderRadius: 8, padding: 10, fontSize: 13, textAlignVertical: 'top' },
-  modalBtn:       { borderRadius: 8, paddingVertical: 10, alignItems: 'center' },
+  filterRow: { 
+    flexDirection: 'row', 
+    backgroundColor: '#1F150C', 
+    paddingHorizontal: 16, 
+    paddingVertical: 12, 
+    gap: 8, 
+    borderBottomWidth: 1, 
+    borderBottomColor: '#412D15' 
+  },
+  filterTab: { 
+    paddingHorizontal: 16, 
+    paddingVertical: 6, 
+    borderRadius: 4, 
+    borderWidth: 1, 
+    borderColor: '#EFE9CE',
+    backgroundColor: '#FBF5DD'
+  },
+  filterTabActive: { 
+    backgroundColor: '#412D15', 
+    borderColor: '#FFC85C' 
+  },
+  filterTxt: { 
+    color: '#2D1F10', 
+    fontSize: 13, 
+    fontWeight: '700',
+    letterSpacing: 0.3
+  },
+  filterTxtActive: { 
+    color: '#FBF5DD' 
+  },
+  card: { 
+    backgroundColor: '#FFFDF9', 
+    borderRadius: 8, 
+    borderWidth: 1, 
+    borderColor: '#EFE9CE', 
+    padding: 16, 
+    marginBottom: 16,
+    shadowColor: '#1F150C',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cardTop: { 
+    flexDirection: 'row', 
+    gap: 12, 
+    alignItems: 'flex-start' 
+  },
+  memberName: { 
+    color: '#1F150C', 
+    fontSize: 15, 
+    fontWeight: '700',
+    marginBottom: 4
+  },
+  bookTitle: { 
+    color: '#2D1F10', 
+    fontWeight: '600',
+    fontSize: 14, 
+    lineHeight: 20,
+    marginBottom: 6
+  },
+  date: { 
+    color: '#706251', 
+    fontSize: 12, 
+    fontWeight: '500',
+    marginTop: 3 
+  },
+  notes: { 
+    backgroundColor: 'rgba(239, 233, 206, 0.3)',
+    borderRadius: 4,
+    padding: 8,
+    marginTop: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#706251',
+    color: '#706251', 
+    fontSize: 12, 
+    fontStyle: 'italic' 
+  },
+  actions: { 
+    flexDirection: 'row', 
+    gap: 10, 
+    marginTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#EFE9CE',
+    paddingTop: 12 
+  },
+  actionBtn: { 
+    flex: 1, 
+    borderWidth: 1, 
+    borderRadius: 6, 
+    paddingVertical: 8, 
+    alignItems: 'center',
+    height: 38,
+    justifyContent: 'center'
+  },
+  actionTxt: { 
+    fontSize: 13, 
+    fontWeight: '700' 
+  },
+  loanRef: { 
+    color: C.success, 
+    fontSize: 12, 
+    marginTop: 8, 
+    fontWeight: '600' 
+  },
+  overlay: { 
+    flex: 1, 
+    backgroundColor: 'rgba(31, 21, 12, 0.6)', 
+    justifyContent: 'center', 
+    padding: 24 
+  },
+  modal: { 
+    backgroundColor: '#FFFDF9', 
+    borderRadius: 8, 
+    padding: 20, 
+    borderWidth: 1, 
+    borderColor: '#EFE9CE',
+    shadowColor: '#1F150C',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 5
+  },
+  modalTitle: { 
+    color: '#1F150C', 
+    fontSize: 18, 
+    fontWeight: '700', 
+    marginBottom: 4 
+  },
+  modalSub: { 
+    color: '#706251', 
+    fontSize: 13, 
+    marginBottom: 12 
+  },
+  modalInput: { 
+    backgroundColor: '#FFFDF9', 
+    color: '#1F150C', 
+    borderWidth: 1, 
+    borderColor: '#EFE9CE', 
+    borderRadius: 6, 
+    padding: 10, 
+    fontSize: 13, 
+    textAlignVertical: 'top',
+    minHeight: 80
+  },
+  modalBtn: { 
+    borderRadius: 6, 
+    paddingVertical: 10, 
+    alignItems: 'center',
+    height: 40,
+    justifyContent: 'center'
+  },
 });

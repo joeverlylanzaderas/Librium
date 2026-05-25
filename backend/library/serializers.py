@@ -172,7 +172,7 @@ class BorrowRequestCreateSerializer(serializers.ModelSerializer):
                 {'book': 'You already have an active borrow request for this book.'}
             )
 
-        # ✅ Optional: Blocks them if they have an ongoing unreturned LOAN record for this copy
+        # Optional: Blocks them if they have an ongoing unreturned LOAN record for this copy
         active_loan = Loan.objects.filter(
             member=member,
             book=book,
