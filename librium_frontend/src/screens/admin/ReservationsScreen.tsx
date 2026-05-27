@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Text, ScrollView, StyleSheet, RefreshControl, View, Platform, useWindowDimensions, Alert, TouchableOpacity, Modal, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getReservations, fulfillReservation } from '../../services/api';
+import { getReservations, fulfillReservation, normalizePaginated } from '../../services/api';
 import { useAutoRefreshOnFocus } from '../../hooks/useAutoRefreshOnFocus';
 import { Empty, Loading } from '../../components/UI';
 
@@ -55,7 +55,7 @@ export default function ReservationsScreen() {
   const load = async () => {
     try {
       const data = await getReservations();
-      setItems(data.results ?? data);
+      setItems(normalizePaginated(data));
     } catch (e) { }
     finally { setLoading(false); setRefreshing(false); }
   };

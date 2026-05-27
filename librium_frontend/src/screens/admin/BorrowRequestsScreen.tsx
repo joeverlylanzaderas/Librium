@@ -12,7 +12,7 @@ import {
   Platform 
 } from 'react-native';
 import { useAlert } from '../../components/AlertProvider';
-import { getBorrowRequests, approveBorrowRequest, rejectBorrowRequest } from '../../services/api';
+import { getBorrowRequests, approveBorrowRequest, rejectBorrowRequest, normalizePaginated } from '../../services/api';
 import { Card, Btn, Badge, Empty, Loading, C } from '../../components/UI';
 import SidebarLayout from '../../components/SidebarLayout';
 
@@ -51,7 +51,7 @@ export default function BorrowRequestsScreen() {
   const load = async () => {
     try {
       const data = await getBorrowRequests(filter);
-      setRequests(data.results ?? data);
+      setRequests(normalizePaginated(data));
     } catch (e) { 
       
     } finally { 

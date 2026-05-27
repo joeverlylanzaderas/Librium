@@ -3,15 +3,33 @@
 
   const BASE_URL = 'https://librium.onrender.com/api';
 
-  let authToken: string | null = null;
+  // FIX: Add pagination interface for type safety
+  export interface PaginatedResponse<T> {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: T[];
+  }
 
-  export const setToken = async (token: string) => {
-    authToken = token;
-    await AsyncStorage.setItem('token', token);
+  // Helper to check if response is paginated
+  export const isPaginatedResponse = (data: any): data is PaginatedResponse<any> => {
+    return data && typeof data === 'object' && 'results' in data && 'count' in data;
   };
 
-  export const loadToken = async () => {
-    authToken = await AsyncStorage.getItem('token');
+export const normalizePaginated = <T,>(payload: T[] | PaginatedResponse<T> | null | undefined): T[] => {
+  if (Array.isArray(payload)) return payload;
+  return payload?.results ?? [];
+};
+
+let authToken: string | null = null;
+
+export const setToken = async (token: string) => {
+  authToken = token;
+  await AsyncStorage.setItem('token', token);
+};
+
+export const loadToken = async () => {
+  authToken = await AsyncStorage.getItem('token');
   };
 
   export const getToken = () => authToken;
@@ -93,53 +111,53 @@
   export const getDashboard = () => req('GET', '/library/dashboard/');
 
   // ── Users ─────────────────────────────────────────────────────
-  export const getUsers   = ()            => req('GET',    '/users/');
+  export const getUsers   = (): Promise<PaginatedResponse<any>> => req('GET', '/users/');
   export const getUser    = (id: number)  => req('GET',    `/users/${id}/`);
   export const createUser = (data: any)   => req('POST',   '/users/', data);
   export const updateUser = (id: number, data: any) => req('PATCH', `/users/${id}/`, data);
   export const deleteUser = (id: number)  => req('DELETE', `/users/${id}/`);
 
   // ── Bookmarks ──────────────────────────────────────────────────
-  export const getBookmarks = () =>  req('GET', '/library/bookmarks/');
+  export const getBookmarks = (): Promise<PaginatedResponse<any>> => req('GET', '/library/bookmarks/');
   export const createBookmark = (bookId: number) =>  req('POST', '/library/bookmarks/', { book: bookId });
   export const deleteBookmark = (bookmarkId: number) =>  req('DELETE', `/library/bookmarks/${bookmarkId}/`);
 
   // ── Books ─────────────────────────────────────────────────────
-  export const getBooks   = (params?: string) => req('GET', `/library/books/${params ? `?${params}` : ''}`);
+  export const getBooks   = (params?: string): Promise<PaginatedResponse<any>> => req('GET', `/library/books/${params ? `?${params}` : ''}`);
   export const getBook    = (id: number)      => req('GET', `/library/books/${id}/`);
   export const createBook = (data: any)       => req('POST',   '/library/books/', data);
   export const updateBook = (id: number, data: any) => req('PATCH', `/library/books/${id}/`, data);
   export const deleteBook = (id: number)      => req('DELETE', `/library/books/${id}/`);
 
   // ── Authors ───────────────────────────────────────────────────
-  export const getAuthors   = ()           => req('GET',  '/library/authors/');
+  export const getAuthors   = (): Promise<PaginatedResponse<any>> => req('GET', '/library/authors/');
   export const getAuthor    = (id: number) => req('GET',  `/library/authors/${id}/`);
   export const createAuthor = (data: any)  => req('POST', '/library/authors/', data);
   export const updateAuthor = (id: number, data: any) => req('PATCH', `/library/authors/${id}/`, data);
   export const deleteAuthor = (id: number) => req('DELETE', `/library/authors/${id}/`);
 
   // ── Categories ────────────────────────────────────────────────
-  export const getCategories  = ()           => req('GET',  '/library/categories/');
+  export const getCategories  = (): Promise<PaginatedResponse<any>> => req('GET', '/library/categories/');
   export const createCategory = (data: any)  => req('POST', '/library/categories/', data);
   export const updateCategory = (id: number, data: any) => req('PATCH', `/library/categories/${id}/`, data);
   export const deleteCategory = (id: number) => req('DELETE', `/library/categories/${id}/`);
 
   // ── Departments ───────────────────────────────────────────────
-  export const getDepartments  = ()           => req('GET',  '/library/departments/');
+  export const getDepartments  = (): Promise<PaginatedResponse<any>> => req('GET', '/library/departments/');
   export const createDepartment = (data: any) => req('POST', '/library/departments/', data);
   export const updateDepartment = (id: number, data: any) => req('PATCH', `/library/departments/${id}/`, data);
   export const deleteDepartment = (id: number) => req('DELETE', `/library/departments/${id}/`);
 
   // ── Semesters ─────────────────────────────────────────────────
-  export const getSemesters      = ()           => req('GET',   '/library/semesters/');
+  export const getSemesters      = (): Promise<PaginatedResponse<any>> => req('GET', '/library/semesters/');
   export const createSemester    = (data: any)  => req('POST',  '/library/semesters/', data);
   export const updateSemester    = (id: number, data: any) => req('PATCH', `/library/semesters/${id}/`, data);
   export const deleteSemester    = (id: number) => req('DELETE', `/library/semesters/${id}/`);
   export const setActiveSemester = (id: number) => req('PATCH',  `/library/semesters/${id}/set-active/`);
 
   // ── Borrow Requests ───────────────────────────────────────────
-  export const getBorrowRequests    = (status?: string) =>
-    req('GET', `/library/borrow-requests/${status ? `?status=${status}` : ''}`);
+  export const getBorrowRequests    = (status?: string): Promise<PaginatedResponse<any>> =>
+  req('GET', `/library/borrow-requests/${status ? `?status=${status}` : ''}`);
   export const getBorrowRequest     = (id: number) => req('GET', `/library/borrow-requests/${id}/`);
   export const approveBorrowRequest = (id: number, notes?: string) =>
     req('POST', `/library/borrow-requests/${id}/approve/`, { notes });
@@ -152,7 +170,7 @@
   
 
   // ── Loans ─────────────────────────────────────────────────────
-  export const getLoans      = ()           => req('GET',    '/library/loans/');
+  export const getLoans      = (): Promise<PaginatedResponse<any>> => req('GET', '/library/loans/');
   export const getLoan       = (id: number) => req('GET',    `/library/loans/${id}/`);
   export const createLoan    = (data: any)  => req('POST',   '/library/loans/', data);
   export const deleteLoan    = (id: number) => req('DELETE', `/library/loans/${id}/`);
@@ -165,7 +183,7 @@
 
 
   // ── Reservations ──────────────────────────────────────────────
-  export const getReservations   = ()           => req('GET',    '/library/reservations/');
+  export const getReservations   = (): Promise<PaginatedResponse<any>> => req('GET', '/library/reservations/');
   export const getReservation    = (id: number) => req('GET',    `/library/reservations/${id}/`);
   export const createReservation = (data: any)  => req('POST',   '/library/reservations/', data);
   export const cancelReservation = (id: number) => req('DELETE', `/library/reservations/${id}/`);
@@ -173,6 +191,12 @@
 
 
   // ── Fines ─────────────────────────────────────────────────────
-  export const getFines = ()           => req('GET',  '/library/fines/');
+  export const getFines = (): Promise<PaginatedResponse<any>> => req('GET', '/library/fines/');
   export const getFine  = (id: number) => req('GET',  `/library/fines/${id}/`);
   export const payFine  = (id: number) => req('POST', `/library/fines/${id}/pay/`);
+
+  // ── Chatbot ────────────────────────────────────────────────────
+  export const sendChatMessage = (message: string): Promise<{ user: any; assistant: any }> =>
+    req('POST', '/library/chat/', { message });
+  export const getChatHistory = (): Promise<any[]> => req('GET', '/library/chat/');
+  export const getKnowledgeBase = (): Promise<PaginatedResponse<any>> => req('GET', '/library/knowledge/');

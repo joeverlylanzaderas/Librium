@@ -15,6 +15,7 @@ import { AdminStackParamList } from '../../navigation/AppNavigator';
 import {
   getBooks, createBook, updateBook, deleteBook,
   getAuthors, getCategories, getDepartments,
+  normalizePaginated,
 } from '../../services/api';
 
 type Props = {
@@ -68,15 +69,25 @@ export default function BooksScreen({ navigation }: Props) {
     cover_image_file: null as any,
   });
 
+  const normalizeResults = <T,>(payload: T[] | { results?: T[] } | null | undefined): T[] => {
+    if (Array.isArray(payload)) {
+      return payload;
+    }
+    if (payload && typeof payload === 'object' && 'results' in payload) {
+      return payload.results ?? [];
+    }
+    return [];
+  };
+
   const load = useCallback(async () => {
     try {
       const [books, auths, cats, depts] = await Promise.all([
         getBooks(), getAuthors(), getCategories(), getDepartments(),
       ]);
-      setItems(books.results ?? books);
-      setAuthors(auths.results ?? auths);
-      setCategories(cats.results ?? cats);
-      setDepartments(depts.results ?? depts);
+      setItems(normalizePaginated(books));
+      setAuthors(normalizePaginated(auths));
+      setCategories(normalizePaginated(cats));
+      setDepartments(normalizePaginated(depts));
     } catch {
       Alert.alert('Error', 'Failed to load book catalog.');
     } finally {

@@ -4,7 +4,6 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.exceptions import PermissionDenied
 from django.contrib.auth import get_user_model
-from urllib3 import request
 
 from .models import UserProfile
 from .serializers import (
@@ -39,7 +38,7 @@ class UserListCreateAPIView(generics.ListCreateAPIView):
         if request.user.role != 'admin' and requested_role in ['admin', 'librarian']:
             raise PermissionDenied('Librarians can only create member accounts.')
 
-        serializer = UserCreateSerializer(data=request.data)
+        serializer = UserCreateSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             # admin/librarian-created accounts are active immediately
             user = serializer.save()

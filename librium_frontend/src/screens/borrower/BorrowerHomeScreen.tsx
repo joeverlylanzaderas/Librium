@@ -368,10 +368,16 @@ export default function BorrowerHomeScreen() {
   const loadStats = useCallback(async () => {
     try {
       setStatsLoading(true);
-      const [loans, reservations, requests, fines, bookmarkData] = await Promise.all([
+      const [loansRes, reservationsRes, requestsRes, finesRes, bookmarkDataRes] = await Promise.all([
         getLoans(), getReservations(), getBorrowRequests(), getFines(), getBookmarks(),
       ]);
-      
+
+      const loans = Array.isArray(loansRes) ? loansRes : loansRes.results ?? [];
+      const reservations = Array.isArray(reservationsRes) ? reservationsRes : reservationsRes.results ?? [];
+      const requests = Array.isArray(requestsRes) ? requestsRes : requestsRes.results ?? [];
+      const fines = Array.isArray(finesRes) ? finesRes : finesRes.results ?? [];
+      const bookmarkData = Array.isArray(bookmarkDataRes) ? bookmarkDataRes : bookmarkDataRes.results ?? [];
+
       setBookmarks(bookmarkData);
 
       const ongoingLoans  = loans.filter((l: any) => ['none', 'pending', null].includes(l.return_status));
@@ -404,9 +410,14 @@ export default function BorrowerHomeScreen() {
         getCategories(), 
         getDepartments().catch(() => []) 
       ]);
-      setBooks(booksData.map((b: any) => ({ ...b, cover_image: b.cover_image || b.cover_image_url || null })));
-      setCategories(catData);
-      setDepartments(deptData);
+
+      const books = Array.isArray(booksData) ? booksData : booksData.results ?? [];
+      const categories = Array.isArray(catData) ? catData : catData.results ?? [];
+      const departments = Array.isArray(deptData) ? deptData : deptData.results ?? [];
+
+      setBooks(books.map((b: any) => ({ ...b, cover_image: b.cover_image || b.cover_image_url || null })));
+      setCategories(categories);
+      setDepartments(departments);
     } catch (e) { }
     finally { setLoading(false); setRefreshing(false); }
   }, []);
@@ -464,7 +475,7 @@ export default function BorrowerHomeScreen() {
       Alert.alert('Bookmark Error', 'Could not sync favorite state with the cloud database right now.');
       // Re-sync with actual data if API failure happens
       const freshBookmarks = await getBookmarks().catch(() => bookmarks);
-      setBookmarks(freshBookmarks);
+      setBookmarks(Array.isArray(freshBookmarks) ? freshBookmarks : freshBookmarks.results ?? bookmarks);
     } finally {
       setBookmarkActingId(null);
     }

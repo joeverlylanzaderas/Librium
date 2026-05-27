@@ -15,6 +15,7 @@ import {
   getCategories, createCategory, updateCategory, deleteCategory,
   getDepartments, createDepartment, updateDepartment, deleteDepartment,
   getSemesters, createSemester, updateSemester, deleteSemester, setActiveSemester,
+  normalizePaginated,
 } from '../../services/api';
 
 // ─────────────────────────────────────────────────────────────
@@ -49,7 +50,7 @@ function makeListScreen(
     const load = async () => {
       try {
         const data = await fetchFn();
-        setItems(data.results ?? data);
+        setItems(normalizePaginated(data));
       } catch {
         Alert.alert('Error', 'Failed to load data.');
       } finally {
@@ -290,7 +291,7 @@ export function SemestersScreen() {
   const load = async () => {
     try {
       const data = await getSemesters();
-      setItems(data.results ?? data);
+      setItems(normalizePaginated(data));
     } catch { Alert.alert('Error', 'Failed to load semesters.'); }
     finally { setLoading(false); setRefreshing(false); }
   };

@@ -1,23 +1,6 @@
 # library/serializers.py
 from rest_framework import serializers
-from urllib3 import request
-from .models import Category, Author, Book, ChatMessage, Department, KnowledgeBase, Loan, Reservation, Fine, Semester, BorrowRequest, Bookmark
-
-
-# ─────────────────────────────────────────────
-#  KNOWLEDGE BASE & CHAT
-# ─────────────────────────────────────────────
-
-class KnowledgeBaseSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = KnowledgeBase
-        fields = '__all__'
-
-
-class ChatMessageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ChatMessage
-        fields = '__all__'
+from .models import Category, Author, Book, Department, Bookmark
 
 # ─────────────────────────────────────────────
 #  CATEGORY
@@ -48,27 +31,6 @@ class DepartmentSerializer(serializers.ModelSerializer):
         model  = Department
         fields = ['id', 'name', 'description']
 
-
-# ─────────────────────────────────────────────
-#  SEMESTER
-# ─────────────────────────────────────────────
-
-class SemesterSerializer(serializers.ModelSerializer):
-    semester_type_display = serializers.CharField(
-        source='get_semester_type_display',
-        read_only=True
-    )
-    loan_count = serializers.IntegerField(
-        source='loans.count',
-        read_only=True
-    )
-
-    class Meta:
-        model  = Semester
-        fields = [
-            'id', 'academic_year', 'semester_type', 'semester_type_display',
-            'start_date', 'end_date', 'is_active', 'loan_count',
-        ]
 
 # ─────────────────────────────────────────────
 #  BOOKMARK
@@ -112,27 +74,29 @@ class BookSerializer(serializers.ModelSerializer):
             'author', 'author_name',
             'category', 'category_name',
             'department', 'department_name',
-            'available',
+            'available', 'is_active',  # ← Added is_active field
             'cover_image',
             'description',
             'is_bookmarked', 
         ]
+        read_only_fields = ['is_active']  # Prevent direct modification via regular update
         
     def get_is_bookmarked(self, obj):
+        # FIX: Use prefetched related cache instead of additional query
         request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            return Bookmark.objects.filter(member=request.user, book=obj).exists()
-        return False
+        if not request or not request.user.is_authenticated:
+            return False
+        
+        # Check if bookmarks were prefetched
+        try:
+            bookmarks = obj.bookmarks.all()
+            return any(bm.member_id == request.user.id for bm in bookmarks)
+        except:
+            # Fallback if not prefetched (shouldn't happen with proper view setup)
+            return Bookmark.objects.filter(
+                member=request.user, book=obj
+            ).exists()
     
-    def get_cover_image_url(self, obj):
-        if not obj.cover_image:
-            return None
-        request = self.context.get('request')
-        url = str(obj.cover_image)  
-        url = url.replace('/upload/', '/upload/f_auto/')
-        if request:
-            return request.build_absolute_uri(url)
-        return url
 
 
 # ─────────────────────────────────────────────
@@ -166,6 +130,7 @@ class BorrowRequestSerializer(serializers.ModelSerializer):
             'processed_by', 'loan_id',
         ]
 
+    
     def get_book_cover(self, obj):
         if not obj.book or not obj.book.cover_image:
             return None
@@ -188,6 +153,33 @@ class BorrowRequestCreateSerializer(serializers.ModelSerializer):
         book   = attrs['book']
         member = request.user
 
+        # FIX #16: Check if book is active
+        if not book.is_active:
+            raise serializers.ValidationError(
+                {'book': 'This book has been deactivated and cannot be borrowed.'}
+            )
+
+        # FIX #13: Check for unpaid fines
+        has_unpaid_fine = Fine.objects.filter(
+            member=member, paid=False
+        ).exists()
+        if has_unpaid_fine:
+            raise serializers.ValidationError(
+                {'non_field_errors': 'You have unpaid fines. Please settle them before borrowing.'}
+            )
+
+        # FIX #14: Check max books limit
+        MAX_BOOKS = 3  # Consider moving to LibrarySettings model for admin configurability
+        active_loan_count = Loan.objects.filter(
+            member=member
+        ).exclude(return_status='verified').count()
+        
+        if active_loan_count >= MAX_BOOKS:
+            raise serializers.ValidationError(
+                {'non_field_errors': f'You have reached the limit of {MAX_BOOKS} borrowed books. Please return some books before borrowing more.'}
+            )
+
+        # Check if book is available
         if not book.available:
             raise serializers.ValidationError(
                 {'book': 'This book is currently unavailable. You can reserve it instead.'}

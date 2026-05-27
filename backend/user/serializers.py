@@ -92,6 +92,11 @@ class UserCreateSerializer(DjoserUserCreateSerializer):
         return attrs
 
     def validate_role(self, value):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return 'member'
+        if request.user.role == 'admin':
+            return value
         return 'member'
 
     def create(self, validated_data):
@@ -120,7 +125,7 @@ class UserCreateSerializer(DjoserUserCreateSerializer):
 
         # NOTE: activation email is NOT sent here.
         # Djoser sends it automatically via user.email.ActivationEmail
-        # which is our threaded override in user/email.py.
+        # which is our threaded override in user/emails.py.
         # SEND_ACTIVATION_EMAIL = True in settings handles this.
 
         return user

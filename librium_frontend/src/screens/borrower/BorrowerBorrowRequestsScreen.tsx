@@ -3,7 +3,7 @@ import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   RefreshControl, Alert,
 } from 'react-native';
-import { getBorrowRequests } from '../../services/api';
+import { getBorrowRequests, normalizePaginated } from '../../services/api';
 import { C, Badge, Empty, Loading } from '../../components/UI';
 
 type BorrowRequest = {
@@ -36,7 +36,7 @@ export default function BorrowerBorrowRequestsScreen() {
   const load = useCallback(async () => {
     try {
       const data = await getBorrowRequests(filter === 'all' ? '' : filter);
-      setRequests(data.results ?? data);
+      setRequests(normalizePaginated(data));
     } catch (e) {
       
     } finally {

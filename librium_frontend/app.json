@@ -7,19 +7,29 @@
     "orientation": "portrait",
     "backgroundColor": "#0f1117",
     "userInterfaceStyle": "dark",
+    "icon": "./assets/icon.png",
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#0f1117"
       },
       "package": "com.jvrly.css.librium",
+      "versionCode": 1,
       "intentFilters": [
         {
           "action": "VIEW",
-          "autoVerify": true,
+          "category": ["BROWSABLE", "DEFAULT"],
           "data": [
             {
               "scheme": "librium"
-            },
+            }
+          ]
+        },
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "category": ["BROWSABLE", "DEFAULT"],
+          "data": [
             {
               "scheme": "https",
               "host": "librium-web.netlify.app",
@@ -30,8 +40,7 @@
               "host": "librium.onrender.com",
               "pathPrefix": "/"
             }
-          ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          ]
         }
       ]
     },
@@ -40,7 +49,13 @@
     },
     "plugins": [
       "expo-font",
-      "expo-splash-screen"
-    ]
+      "expo-splash-screen",
+      "expo-image"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "b0918a22-bee7-4d5d-8616-46c361b8d585"
+      }
+    }
   }
 }

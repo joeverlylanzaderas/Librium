@@ -1,3 +1,4 @@
+#  user/emails.py
 from djoser import email
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives

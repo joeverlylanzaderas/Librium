@@ -5,7 +5,7 @@ import {
   TouchableOpacity, ActivityIndicator, useWindowDimensions, TextInput, Modal
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { getUsers, updateUser, deleteUser, createUser } from '../../services/api';
+import { getUsers, updateUser, deleteUser, createUser, normalizePaginated } from '../../services/api';
 import { Card, Empty, Loading, Btn } from '../../components/UI';
 import { useAlert } from '../../components/AlertProvider';
 import { useAutoRefreshOnFocus } from '../../hooks/useAutoRefreshOnFocus';
@@ -60,11 +60,12 @@ export default function MembersScreen() {
   const [formUsername, setFormUsername] = useState('');
   const [formRole, setFormRole] = useState<'admin' | 'librarian' | 'member'>('member');
   const [formPassword, setFormPassword] = useState('');
+  const [formPasswordConfirm, setFormPasswordConfirm] = useState('');
 
   const load = useCallback(async () => {
     try {
       const data = await getUsers();
-      setUsers(data.results ?? data);
+      setUsers(normalizePaginated<User>(data));
     } catch (e) {
       
     } finally {
@@ -94,6 +95,7 @@ export default function MembersScreen() {
     setFormUsername('');
     setFormRole('member');
     setFormPassword('');
+    setFormPasswordConfirm('');
     setModalOpen(true);
   };
 
@@ -104,6 +106,7 @@ export default function MembersScreen() {
     setFormUsername(user.username || '');
     setFormRole(user.role || 'member');
     setFormPassword('');
+    setFormPasswordConfirm('');
     setModalOpen(true);
   };
 
@@ -114,6 +117,11 @@ export default function MembersScreen() {
     }
     if (!editingUser && !formPassword) {
       alert('Security password initialization is required for new records.');
+      return;
+    }
+
+    if (!editingUser && formPassword !== formPasswordConfirm) {
+      alert('Password and confirmation must match.');
       return;
     }
 
@@ -134,7 +142,7 @@ export default function MembersScreen() {
           email: formEmail.trim().toLowerCase(),
           role: formRole,
           password: formPassword,
-          password2: formPassword
+          password2: formPasswordConfirm
         });
         setUsers((prev) => [created, ...prev]);
       }
@@ -335,10 +343,16 @@ export default function MembersScreen() {
                 <TextInput style={s.modalInput} value={formEmail} onChangeText={setFormEmail} keyboardType="email-address" autoCapitalize="none" placeholder="wright@institution.edu" placeholderTextColor="#A1927F" />
               </View>
               {!editingUser && (
-                <View>
-                  <Text style={s.fieldLabel}>Password:</Text>
-                  <TextInput style={s.modalInput} value={formPassword} onChangeText={setFormPassword} secureTextEntry autoCapitalize="none" placeholder="••••••••••••" placeholderTextColor="#A1927F" />
-                </View>
+                <>
+                  <View>
+                    <Text style={s.fieldLabel}>Password:</Text>
+                    <TextInput style={s.modalInput} value={formPassword} onChangeText={setFormPassword} secureTextEntry autoCapitalize="none" placeholder="••••••••••••" placeholderTextColor="#A1927F" />
+                  </View>
+                  <View>
+                    <Text style={s.fieldLabel}>Confirm Password:</Text>
+                    <TextInput style={s.modalInput} value={formPasswordConfirm} onChangeText={setFormPasswordConfirm} secureTextEntry autoCapitalize="none" placeholder="••••••••••••" placeholderTextColor="#A1927F" />
+                  </View>
+                </>
               )}
               <View>
                 <Text style={s.fieldLabel}>Authorization Role:</Text>

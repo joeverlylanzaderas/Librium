@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, RefreshControl, Alert, Platform, useWindowDimensions, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getFines, payFine } from '../../services/api';
+import { getFines, payFine, normalizePaginated } from '../../services/api';
 import { useAlert } from '../../components/AlertProvider';
 import { useAutoRefreshOnFocus } from '../../hooks/useAutoRefreshOnFocus';
 import { Empty, Loading } from '../../components/UI';
@@ -42,7 +42,7 @@ export default function FinesScreen() {
   const load = async () => {
     try {
       const data = await getFines();
-      setFines(data.results ?? data);
+      setFines(normalizePaginated(data));
     } catch (e) {
       
     } finally {

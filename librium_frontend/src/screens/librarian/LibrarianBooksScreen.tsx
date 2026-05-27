@@ -14,6 +14,7 @@ import { Fonts } from '../../constants/theme';
 import {
   getBooks, createBook, updateBook, deleteBook,
   getAuthors, getCategories, getDepartments,
+  normalizePaginated,
 } from '../../services/api';
 
 const AVAIL_COLORS = {
@@ -75,10 +76,10 @@ export default function LibrarianBooksScreen() {
       const [books, auths, cats, depts] = await Promise.all([
         getBooks(), getAuthors(), getCategories(), getDepartments(),
       ]);
-      setItems(books.results ?? books);
-      setAuthors(auths.results ?? auths);
-      setCategories(cats.results ?? cats);
-      setDepartments(depts.results ?? depts);
+      setItems(normalizePaginated(books));
+      setAuthors(normalizePaginated(auths));
+      setCategories(normalizePaginated(cats));
+      setDepartments(normalizePaginated(depts));
     } catch (e) {
       
       Alert.alert('Error', 'Failed to load book catalog.');
